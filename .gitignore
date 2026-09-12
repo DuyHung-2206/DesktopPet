@@ -1,4 +1,4 @@
-﻿# Build results
+# Build results
 [Dd]ebug/
 [Dd]ebugPublic/
 [Rr]elease/
@@ -23,6 +23,7 @@ bld/
 # Distribution packages & archives
 Publish/
 Build/
+Installer/
 *.zip
 
 # Windows temporary files
