@@ -1,0 +1,98 @@
+<Window x:Class="DesktopPet.Views.PetSelectionWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d"
+        Title="Bộ Sưu Tập Thú Cưng"
+        Width="720" Height="500"
+        WindowStartupLocation="CenterScreen"
+        WindowStyle="None"
+        AllowsTransparency="True"
+        Background="Transparent"
+        ResizeMode="NoResize">
+
+    <Border Background="#F3E5F5" BorderBrush="#AB47BC" BorderThickness="3"
+            CornerRadius="22" Padding="20" Effect="{DynamicResource WindowShadow}">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+
+            <!-- TIÊU ĐỀ + VÍ TIỀN + NÚT ĐÓNG -->
+            <Grid Grid.Row="0" Margin="0,0,0,15">
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                    <TextBlock Text="🐾" FontSize="26" Margin="0,0,8,0" />
+                    <TextBlock Text="BỘ SƯU TẬP THÚ CƯNG" FontSize="20" FontWeight="Bold" Foreground="#4A148C" VerticalAlignment="Center" />
+                </StackPanel>
+
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                    <Border Background="#FFF3E0" BorderBrush="#FFA726" BorderThickness="1.5" CornerRadius="14" Padding="12,5" Margin="0,0,12,0">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="🪙" FontSize="16" Margin="0,0,5,0" />
+                            <TextBlock Text="{Binding Coins}" FontWeight="Bold" FontSize="15" Foreground="#EF6C00" />
+                            <TextBlock Text=" Xu" FontSize="13" Foreground="#8D6E63" Margin="2,1,0,0" />
+                        </StackPanel>
+                    </Border>
+
+                    <Button Click="OnCloseClick" Width="32" Height="32" Background="#FFEBEE" BorderBrush="#EF5350" BorderThickness="1.5"
+                            Content="✕" FontWeight="Bold" Foreground="#D32F2F" Cursor="Hand">
+                        <Button.Resources>
+                            <Style TargetType="Border">
+                                <Setter Property="CornerRadius" Value="16" />
+                            </Style>
+                        </Button.Resources>
+                    </Button>
+                </StackPanel>
+            </Grid>
+
+            <!-- DANH SÁCH THÚ CƯNG -->
+            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                <ItemsControl ItemsSource="{Binding Collection}">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <WrapPanel />
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Border Width="210" Height="200" Background="White" BorderBrush="#CE93D8" BorderThickness="1.5"
+                                    CornerRadius="18" Margin="6" Padding="12" Effect="{DynamicResource CardShadow}">
+                                <Grid>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="*" />
+                                        <RowDefinition Height="Auto" />
+                                    </Grid.RowDefinitions>
+
+                                    <!-- Tên loài + Trạng thái hoạt động -->
+                                    <StackPanel Grid.Row="0" HorizontalAlignment="Center">
+                                        <TextBlock Text="{Binding DisplayName}" FontWeight="Bold" FontSize="15" Foreground="#6A1B9A" HorizontalAlignment="Center" />
+                                        <TextBlock Text="{Binding Level, StringFormat='Cấp độ: {0}'}" FontSize="11" Foreground="#7B1FA2" HorizontalAlignment="Center" />
+                                    </StackPanel>
+
+                                    <!-- Mô tả & Đặc điểm -->
+                                    <TextBlock Grid.Row="1" Text="{Binding Description}" FontSize="11" Foreground="#546E7A"
+                                               TextAlignment="Center" TextWrapping="Wrap" VerticalAlignment="Center" Margin="0,5" />
+
+                                    <!-- Nút Chọn / Mở khóa -->
+                                    <Button Grid.Row="2" Command="{Binding DataContext.SelectOrUnlockCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                            CommandParameter="{Binding}"
+                                            Height="34" Background="#8E24AA" BorderThickness="0" Cursor="Hand">
+                                        <Button.Resources>
+                                            <Style TargetType="Border">
+                                                <Setter Property="CornerRadius" Value="12" />
+                                            </Style>
+                                        </Button.Resources>
+                                        <TextBlock Text="{Binding ActionText}" FontWeight="Bold" Foreground="White" FontSize="12" />
+                                    </Button>
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </ScrollViewer>
+        </Grid>
+    </Border>
+</Window>

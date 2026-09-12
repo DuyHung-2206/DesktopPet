@@ -1,0 +1,79 @@
+{
+  "meta": {
+    "character": "Golden Fox Pet",
+    "version": "1.0",
+    "spriteSize": { "width": 32, "height": 32 },
+    "colorPalette": {
+      "outline": "#1A1A24",
+      "furPrimary": "#FFA726",
+      "furShadow": "#E65100",
+      "creamMuzzle": "#FFF3E0",
+      "tailTip": "#FFFFFF",
+      "earDark": "#5D4037",
+      "hurtFlash": "#D32F2F"
+    },
+    "scaling": "NearestNeighbor"
+  },
+  "animations": {
+    "attack": {
+      "row": 0,
+      "frameCount": 4,
+      "fps": 8,
+      "loop": false,
+      "frames": [
+        { "index": 0, "name": "ready_pose", "durationMs": 125 },
+        { "index": 1, "name": "lunge_forward", "durationMs": 100 },
+        { "index": 2, "name": "impact_bite", "durationMs": 125 },
+        { "index": 3, "name": "recovery", "durationMs": 150 }
+      ]
+    },
+    "death": {
+      "row": 1,
+      "frameCount": 4,
+      "fps": 6,
+      "loop": false,
+      "frames": [
+        { "index": 0, "name": "standing", "durationMs": 150 },
+        { "index": 1, "name": "fall_forward", "durationMs": 150 },
+        { "index": 2, "name": "collapse", "durationMs": 180 },
+        { "index": 3, "name": "flat_lying", "durationMs": 500 }
+      ]
+    },
+    "hurt": {
+      "row": 2,
+      "frameCount": 2,
+      "fps": 6,
+      "loop": false,
+      "frames": [
+        { "index": 0, "name": "hit_pose", "durationMs": 100 },
+        { "index": 1, "name": "recoil_red_flash", "durationMs": 180 }
+      ]
+    },
+    "idle": {
+      "row": 3,
+      "frameCount": 4,
+      "fps": 4,
+      "loop": true,
+      "frames": [
+        { "index": 0, "name": "idle_stand", "durationMs": 250 },
+        { "index": 1, "name": "breathe_up", "durationMs": 250 },
+        { "index": 2, "name": "tail_swish", "durationMs": 250 },
+        { "index": 3, "name": "breathe_down", "durationMs": 250 }
+      ]
+    },
+    "run": {
+      "row": 4,
+      "frameCount": 6,
+      "fps": 10,
+      "loop": true,
+      "frames": [
+        { "index": 0, "name": "run_contact_left", "durationMs": 100 },
+        { "index": 1, "name": "run_passing_1", "durationMs": 100 },
+        { "index": 2, "name": "run_contact_right", "durationMs": 100 },
+        { "index": 3, "name": "run_passing_2", "durationMs": 100 },
+        { "index": 4, "name": "run_leap_stretch", "durationMs": 100 },
+        { "index": 5, "name": "run_land", "durationMs": 100 }
+      ]
+    }
+  }
+}

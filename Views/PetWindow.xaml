@@ -1,0 +1,64 @@
+<Window x:Class="DesktopPet.Views.PetWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:controls="clr-namespace:DesktopPet.Views.Controls"
+        mc:Ignorable="d"
+        Title="Desktop Pet"
+        WindowStyle="None"
+        AllowsTransparency="True"
+        Background="{x:Null}"
+        Topmost="True"
+        ShowInTaskbar="False"
+        ResizeMode="NoResize"
+        Width="360"
+        Height="360">
+
+    <Window.Resources>
+        <DropShadowEffect x:Key="ShadowEffect" BlurRadius="12" ShadowDepth="3" Opacity="0.25" Color="#37474F" />
+
+        <ContextMenu x:Key="PetContextMenu" FontSize="13">
+            <MenuItem Header="📊 Ẩn / Hiện Bảng Chỉ Số" Click="OnMenuToggleStatusPopupClick" FontWeight="Bold" />
+            <Separator />
+            <MenuItem Header="🍖 Cho Ăn" Click="OnMenuFeedClick" />
+            <MenuItem Header="🎾 Chơi Đùa" Click="OnMenuPlayClick" />
+            <MenuItem Header="🛁 Tắm Rửa" Click="OnMenuBathClick" />
+            <MenuItem Header="😴 Ngủ / Thức Dậy" Click="OnMenuSleepClick" />
+            <Separator />
+            <MenuItem Header="🎒 Mở Túi Đồ" Click="OnMenuInventoryClick" />
+            <MenuItem Header="🏪 Tủ Đồ &amp; Bếp Ăn" Click="OnMenuShopClick" />
+            <MenuItem Header="🐾 Bộ Sưu Tập Pet" Click="OnMenuCollectionClick" />
+            <MenuItem Header="🎯 Mini Game Bắt Bóng" Click="OnMenuMiniGameClick" />
+            <Separator />
+            <MenuItem Header="📊 Bảng Quản Lý Menu" Click="OnMenuDashboardClick" />
+            <MenuItem Header="⚙️ Cài Đặt" Click="OnMenuSettingsClick" />
+            <Separator />
+            <MenuItem Header="❌ Thoát Game" Click="OnMenuExitClick" />
+        </ContextMenu>
+    </Window.Resources>
+
+    <Canvas x:Name="MainCanvas" Width="360" Height="360" Background="{x:Null}">
+
+        <!-- POPUP MINI CHỈ SỐ KHI BẬT -->
+        <controls:PetStatusPopup x:Name="StatusPopupControl"
+                                 Canvas.Left="92.5" Canvas.Top="15"
+                                 Visibility="{Binding IsStatusPopupOpen, Converter={StaticResource BooleanToVisibilityConverter}, FallbackValue=Collapsed}" />
+
+        <!-- BÓNG THOẠI CẢM XÚC (EMOTE BUBBLE CĂN GIỮA TRÊN ĐẦU PET, KHÔNG BAO GIỜ BỊ MẤT CHỮ) -->
+        <controls:EmoteBubble x:Name="EmoteBubbleControl"
+                              Text="{Binding EmoteText}"
+                              Canvas.Left="50" Canvas.Top="85" Width="260"
+                              Visibility="{Binding IsEmoteVisible, Converter={StaticResource BooleanToVisibilityConverter}, FallbackValue=Collapsed}" />
+
+        <!-- THÚ CƯNG CHÍNH (PET RENDERER: 70x70) CĂN GIỮA TỌA ĐỘ (145, 160) -->
+        <controls:PetRenderer x:Name="PetRendererControl"
+                              Canvas.Left="145" Canvas.Top="160"
+                              ContextMenu="{StaticResource PetContextMenu}"
+                              MouseLeftButtonDown="OnPetMouseLeftButtonDown"
+                              MouseLeftButtonUp="OnPetMouseLeftButtonUp"
+                              MouseMove="OnPetMouseMove"
+                              Cursor="Hand" />
+
+    </Canvas>
+</Window>

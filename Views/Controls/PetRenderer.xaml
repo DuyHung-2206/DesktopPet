@@ -1,0 +1,196 @@
+<UserControl x:Class="DesktopPet.Views.Controls.PetRenderer"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             mc:Ignorable="d" 
+             d:DesignHeight="70" d:DesignWidth="70"
+             Width="70" Height="70">
+    <UserControl.Resources>
+        <!-- Hoạt ảnh thở nhè nhẹ (Idle Breathing) -->
+        <Storyboard x:Key="BreatheAnimation" RepeatBehavior="Forever" AutoReverse="True">
+            <DoubleAnimation Storyboard.TargetName="BodyScale" 
+                             Storyboard.TargetProperty="ScaleY" 
+                             From="1.0" To="1.05" Duration="0:0:1.2" />
+            <DoubleAnimation Storyboard.TargetName="BodyScale" 
+                             Storyboard.TargetProperty="ScaleX" 
+                             From="1.0" To="0.98" Duration="0:0:1.2" />
+        </Storyboard>
+
+        <!-- Hoạt ảnh lắc lư bước đi (Walk Waddle) -->
+        <Storyboard x:Key="WalkAnimation" RepeatBehavior="Forever" AutoReverse="True">
+            <DoubleAnimation Storyboard.TargetName="RootRotate" 
+                             Storyboard.TargetProperty="Angle" 
+                             From="-6" To="6" Duration="0:0:0.25" />
+            <DoubleAnimation Storyboard.TargetName="BodyTranslate" 
+                             Storyboard.TargetProperty="Y" 
+                             From="0" To="-8" Duration="0:0:0.25" AutoReverse="True" />
+        </Storyboard>
+
+        <!-- Hoạt ảnh chớp mắt (Blink) -->
+        <Storyboard x:Key="BlinkAnimation">
+            <DoubleAnimation Storyboard.TargetName="EyeScale" 
+                             Storyboard.TargetProperty="ScaleY" 
+                             From="1.0" To="0.1" Duration="0:0:0.1" AutoReverse="True" />
+        </Storyboard>
+
+        <!-- Hoạt ảnh vẫy đuôi (Tail Wag) -->
+        <Storyboard x:Key="TailWagAnimation" RepeatBehavior="Forever" AutoReverse="True">
+            <DoubleAnimation Storyboard.TargetName="TailRotate" 
+                             Storyboard.TargetProperty="Angle" 
+                             From="-15" To="20" Duration="0:0:0.35" />
+        </Storyboard>
+    </UserControl.Resources>
+
+    <Viewbox Width="70" Height="70" Stretch="Uniform">
+        <Grid x:Name="RootGrid" Width="140" Height="140" RenderTransformOrigin="0.5, 1.0">
+            <Grid.RenderTransform>
+                <TransformGroup>
+                    <ScaleTransform x:Name="FlipScale" ScaleX="1" ScaleY="1" />
+                    <RotateTransform x:Name="RootRotate" Angle="0" />
+                    <TranslateTransform x:Name="BodyTranslate" X="0" Y="0" />
+                </TransformGroup>
+            </Grid.RenderTransform>
+
+            <!-- BÓNG ĐỔ DƯỚI CHÂN (SHADOW) -->
+            <Ellipse Width="85" Height="16" Fill="#33000000" VerticalAlignment="Bottom" Margin="0,0,0,6" />
+
+            <!-- 1. HÌNH ẢNH SPRITE THỰC TẾ (PIXEL ART CHUẨN NEAREST-NEIGHBOR KHÔNG MỜ) -->
+            <Image x:Name="SpriteImage" Width="128" Height="128" VerticalAlignment="Bottom" HorizontalAlignment="Center" Margin="0,0,0,-4" Visibility="Collapsed"
+                   RenderOptions.BitmapScalingMode="NearestNeighbor"
+                   RenderOptions.EdgeMode="Aliased"
+                   SnapsToDevicePixels="True" />
+
+        <!-- 2. BỘ RENDER VECTOR PROCEDURAL CỰC ĐẸP (HOẠT ĐỘNG 100% OFFLINE KHÔNG CẦN ASSET NGOÀI) -->
+        <Canvas x:Name="VectorPetCanvas" Width="140" Height="140">
+
+            <!-- ĐUÔI (TAIL) -->
+            <Path x:Name="TailPath" 
+                  Data="M 45,95 Q 20,80 15,60 Q 25,60 48,88 Z"
+                  Fill="#FFA726" Stroke="#E65100" StrokeThickness="2"
+                  RenderTransformOrigin="1.0, 1.0">
+                <Path.RenderTransform>
+                    <RotateTransform x:Name="TailRotate" Angle="0" />
+                </Path.RenderTransform>
+            </Path>
+
+            <!-- PHỤ KIỆN LƯNG (BACKPACK) -->
+            <TextBlock x:Name="BackAccessoryText" Text="🎒" FontSize="28" 
+                       Canvas.Left="20" Canvas.Top="70" Visibility="Collapsed" />
+
+            <!-- THÂN VÀ ĐẦU (BODY & HEAD) -->
+            <Grid Canvas.Left="25" Canvas.Top="30" Width="90" Height="95" RenderTransformOrigin="0.5, 0.9">
+                <Grid.RenderTransform>
+                    <ScaleTransform x:Name="BodyScale" ScaleX="1.0" ScaleY="1.0" />
+                </Grid.RenderTransform>
+
+                <!-- TAI TRÁI (LEFT EAR) -->
+                <Path x:Name="LeftEarPath"
+                      Data="M 15,25 L 25,2 L 38,22 Z"
+                      Fill="#FFA726" Stroke="#E65100" StrokeThickness="2" />
+                <Path x:Name="LeftInnerEar"
+                      Data="M 18,23 L 25,7 L 34,21 Z"
+                      Fill="#FFCC80" />
+
+                <!-- TAI PHẢI (RIGHT EAR) -->
+                <Path x:Name="RightEarPath"
+                      Data="M 52,22 L 65,2 L 75,25 Z"
+                      Fill="#FFA726" Stroke="#E65100" StrokeThickness="2" />
+                <Path x:Name="RightInnerEar"
+                      Data="M 56,21 L 65,7 L 72,23 Z"
+                      Fill="#FFCC80" />
+
+                <!-- KHỐI ĐẦU VÀ THÂN CHÍNH (MAIN BODY CIRCLE) -->
+                <Border Width="82" Height="78" CornerRadius="40" 
+                        Background="#FFA726" BorderBrush="#E65100" BorderThickness="2.5"
+                        VerticalAlignment="Bottom" HorizontalAlignment="Center">
+                    <Grid>
+                        <!-- MẢNG BỤNG SÁNG MÀU -->
+                        <Ellipse Width="50" Height="40" Fill="#FFE082" VerticalAlignment="Bottom" Margin="0,0,0,4" />
+
+                        <!-- MẮT (EYES) -->
+                        <Canvas VerticalAlignment="Center" Height="25" Margin="10,0,10,10">
+                            <Canvas.RenderTransform>
+                                <ScaleTransform x:Name="EyeScale" ScaleX="1" ScaleY="1" CenterY="12" />
+                            </Canvas.RenderTransform>
+
+                            <!-- Mắt Trái Mở -->
+                            <Ellipse x:Name="LeftEyeOpen" Width="10" Height="14" Fill="#212121" Canvas.Left="15" Canvas.Top="4">
+                                <!-- Đốm sáng trong mắt -->
+                                <Ellipse.OpacityMask>
+                                    <VisualBrush>
+                                        <VisualBrush.Visual>
+                                            <Grid Width="10" Height="14">
+                                                <Ellipse Fill="Black" />
+                                                <Ellipse Fill="White" Width="4" Height="4" Margin="2,2,0,0" HorizontalAlignment="Left" VerticalAlignment="Top" />
+                                            </Grid>
+                                        </VisualBrush.Visual>
+                                    </VisualBrush>
+                                </Ellipse.OpacityMask>
+                            </Ellipse>
+
+                            <!-- Mắt Phải Mở -->
+                            <Ellipse x:Name="RightEyeOpen" Width="10" Height="14" Fill="#212121" Canvas.Left="42" Canvas.Top="4" />
+
+                            <!-- Mắt Nhắm (Khi ngủ hoặc cười tít mắt) -->
+                            <Path x:Name="EyesClosedPath" 
+                                  Data="M 12,12 Q 20,18 28,12 M 39,12 Q 47,18 55,12" 
+                                  Stroke="#212121" StrokeThickness="2.5" StrokeStartLineCap="Round" StrokeEndLineCap="Round"
+                                  Visibility="Collapsed" />
+                        </Canvas>
+
+                        <!-- MÁ HỒNG (BLUSH CHEEKS) -->
+                        <Ellipse Width="12" Height="7" Fill="#FF8A80" Opacity="0.7" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="12,14,0,0" />
+                        <Ellipse Width="12" Height="7" Fill="#FF8A80" Opacity="0.7" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,14,12,0" />
+
+                        <!-- MŨI VÀ MIỆNG (NOSE & MOUTH) -->
+                        <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,10,0,0">
+                            <!-- Mũi nhỏ -->
+                            <Polygon Points="0,0 8,0 4,5" Fill="#D81B60" HorizontalAlignment="Center" />
+                            <!-- Miệng cười :3 -->
+                            <Path x:Name="MouthPath" 
+                                  Data="M -8,0 Q -4,5 0,0 Q 4,5 8,0" 
+                                  Stroke="#D81B60" StrokeThickness="1.8" StrokeStartLineCap="Round" StrokeEndLineCap="Round"
+                                  HorizontalAlignment="Center" Margin="0,1,0,0" />
+                        </StackPanel>
+
+                        <!-- RÂU MÈO (WHISKERS) -->
+                        <Path x:Name="WhiskersPath"
+                              Data="M 6,36 L -6,34 M 6,40 L -6,43 M 62,36 L 74,34 M 62,40 L 74,43"
+                              Stroke="#BDBDBD" StrokeThickness="1.5" StrokeStartLineCap="Round" />
+
+                        <!-- CHÂN TRƯỚC (PAWS) -->
+                        <Ellipse Width="16" Height="10" Fill="#FFE082" Stroke="#E65100" StrokeThickness="1"
+                                 HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="18,0,0,2" />
+                        <Ellipse Width="16" Height="10" Fill="#FFE082" Stroke="#E65100" StrokeThickness="1"
+                                 HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,18,2" />
+                    </Grid>
+                </Border>
+            </Grid>
+
+            <!-- PHỤ KIỆN MẮT (GLASSES / SUNGLASSES) -->
+            <TextBlock x:Name="EyesAccessoryText" Text="👓" FontSize="30" 
+                       Canvas.Left="40" Canvas.Top="52" Visibility="Collapsed" />
+
+            <!-- PHỤ KIỆN ĐẦU (HAT / CROWN / RIBBON) -->
+            <TextBlock x:Name="HeadAccessoryText" Text="👑" FontSize="32" 
+                       Canvas.Left="42" Canvas.Top="12" Visibility="Collapsed" />
+
+            <!-- HIỆU ỨNG TẮM (BỌT XÀ PHÒNG - BUBBLES) -->
+            <Canvas x:Name="BathBubblesCanvas" Visibility="Collapsed">
+                <Ellipse Width="18" Height="18" Fill="#88E0F7FA" Stroke="#4DD0E1" Canvas.Left="20" Canvas.Top="40" />
+                <Ellipse Width="24" Height="24" Fill="#88E0F7FA" Stroke="#4DD0E1" Canvas.Left="85" Canvas.Top="30" />
+                <Ellipse Width="14" Height="14" Fill="#88E0F7FA" Stroke="#4DD0E1" Canvas.Left="60" Canvas.Top="15" />
+                <Ellipse Width="20" Height="20" Fill="#88E0F7FA" Stroke="#4DD0E1" Canvas.Left="95" Canvas.Top="80" />
+            </Canvas>
+
+            <!-- HIỆU ỨNG BẨN (DIRTY SMUDGE) -->
+            <Canvas x:Name="DirtySmudgeCanvas" Visibility="Collapsed">
+                <Path Data="M 40,80 Q 45,75 52,82 Q 47,88 40,80 Z" Fill="#8D6E63" Opacity="0.6" />
+                <Path Data="M 85,75 Q 90,70 96,78 Q 91,84 85,75 Z" Fill="#8D6E63" Opacity="0.6" />
+            </Canvas>
+
+        </Canvas>
+    </Grid>
+    </Viewbox>
+</UserControl>

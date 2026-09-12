@@ -1,0 +1,112 @@
+[
+  {
+    "id": "first_feed",
+    "title": "Bữa Ăn Đầu Tiên",
+    "description": "Cho thú cưng của bạn ăn một món ăn ngon miệng lần đầu tiên.",
+    "icon": "🍖",
+    "target": 1,
+    "current": 0,
+    "rewardCoins": 50,
+    "rewardExp": 30,
+    "isUnlocked": false
+  },
+  {
+    "id": "first_play",
+    "title": "Khoảnh Khắc Vui Vẻ",
+    "description": "Chơi đùa cùng thú cưng của bạn bằng một món đồ chơi.",
+    "icon": "🎾",
+    "target": 1,
+    "current": 0,
+    "rewardCoins": 50,
+    "rewardExp": 30,
+    "isUnlocked": false
+  },
+  {
+    "id": "first_bath",
+    "title": "Thơm Tho Sạch Sẽ",
+    "description": "Tắm rửa cho thú cưng khi người bạn nhỏ bị lấm bẩn.",
+    "icon": "🛁",
+    "target": 1,
+    "current": 0,
+    "rewardCoins": 50,
+    "rewardExp": 30,
+    "isUnlocked": false
+  },
+  {
+    "id": "reach_level_5",
+    "title": "Trưởng Thành Nhanh Chóng",
+    "description": "Nuôi dưỡng thú cưng đạt Level 5.",
+    "icon": "⭐",
+    "target": 5,
+    "current": 1,
+    "rewardCoins": 150,
+    "rewardExp": 100,
+    "isUnlocked": false
+  },
+  {
+    "id": "reach_level_10",
+    "title": "Bậc Thầy Chăm Thú",
+    "description": "Nuôi dưỡng thú cưng đạt Level 10.",
+    "icon": "🌟",
+    "target": 10,
+    "current": 1,
+    "rewardCoins": 300,
+    "rewardExp": 250,
+    "isUnlocked": false
+  },
+  {
+    "id": "feed_50_times",
+    "title": "Đầu Bếp Cừ Khôi",
+    "description": "Cho thú cưng ăn tổng cộng 50 lần.",
+    "icon": "🍱",
+    "target": 50,
+    "current": 0,
+    "rewardCoins": 200,
+    "rewardExp": 150,
+    "isUnlocked": false
+  },
+  {
+    "id": "play_50_times",
+    "title": "Bạn Đồng Hành Vàng",
+    "description": "Chơi đùa cùng thú cưng tổng cộng 50 lần.",
+    "icon": "⚽",
+    "target": 50,
+    "current": 0,
+    "rewardCoins": 200,
+    "rewardExp": 150,
+    "isUnlocked": false
+  },
+  {
+    "id": "affection_50",
+    "title": "Bạn Thân Thiết",
+    "description": "Đạt mốc 50% chỉ số Thân thiết với bé Mimi.",
+    "icon": "💖",
+    "target": 50,
+    "current": 0,
+    "rewardCoins": 0,
+    "rewardExp": 150,
+    "isUnlocked": false
+  },
+  {
+    "id": "affection_100",
+    "title": "Tri Kỷ Hoàn Hảo",
+    "description": "Gắn kết đạt 100% Thân thiết tuyệt đối cùng bé Mimi.",
+    "icon": "👑",
+    "target": 100,
+    "current": 0,
+    "rewardCoins": 0,
+    "rewardExp": 300,
+    "isUnlocked": false
+  },
+  {
+    "id": "minigame_master",
+    "title": "Bắt Bóng Siêu Đẳng",
+    "description": "Hoàn thành 10 lượt bắt bóng thành công trong Mini Game.",
+    "icon": "🎯",
+    "target": 10,
+    "current": 0,
+    "rewardCoins": 150,
+    "rewardExp": 100,
+    "isUnlocked": false
+  }
+]

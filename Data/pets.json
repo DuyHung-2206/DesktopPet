@@ -1,0 +1,19 @@
+[
+  {
+    "id": "cat",
+    "name": "Cat",
+    "displayName": "Mèo Mimi 🐱",
+    "description": "Bé mèo mini siêu đáng yêu, nhanh nhẹn, thích được vuốt ve và mê món cá tươi.",
+    "hungerRate": 1.0,
+    "happinessRate": 1.2,
+    "energyRate": 1.0,
+    "cleanlinessRate": 0.9,
+    "speed": 2.2,
+    "favoriteFood": "fish",
+    "favoriteToy": "feather",
+    "unlockPrice": 0,
+    "isUnlocked": true,
+    "baseColor": "#FFA726",
+    "secondaryColor": "#FFE082"
+  }
+]
