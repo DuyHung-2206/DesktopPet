@@ -81,6 +81,14 @@ namespace DesktopPet.Services
         [DllImport("User32.dll")]
         private static extern IntPtr MonitorFromPoint(POINT pt, uint dwFlags);
 
+        [DllImport("User32.dll", CharSet = CharSet.Auto)]
+        private static extern bool GetMonitorInfo(IntPtr hMonitor, ref MONITORINFOEX lpmi);
+
+        [DllImport("User32.dll")]
+        private static extern bool EnumDisplayMonitors(IntPtr hdc, IntPtr lprcClip, MonitorEnumDelegate lpfnEnum, IntPtr dwData);
+
+        private delegate bool MonitorEnumDelegate(IntPtr hMonitor, IntPtr hdcMonitor, ref RECT lprcMonitor, IntPtr dwData);
+
         [DllImport("SHCore.dll")]
         private static extern int GetDpiForMonitor(IntPtr hmonitor, int dpiType, out uint dpiX, out uint dpiY);
 
@@ -95,12 +103,91 @@ namespace DesktopPet.Services
             public POINT(int x, int y) { X = x; Y = y; }
         }
 
+        [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Auto)]
+        private struct MONITORINFOEX
+        {
+            public int cbSize;
+            public RECT rcMonitor;
+            public RECT rcWork;
+            public int dwFlags;
+            [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 32)]
+            public string szDevice;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        private struct RECT
+        {
+            public int Left;
+            public int Top;
+            public int Right;
+            public int Bottom;
+        }
+
         public const uint SWP_NOZORDER = 0x0004;
         public const uint SWP_NOACTIVATE = 0x0010;
         public const uint SWP_NOSIZE = 0x0001;
         private const uint MONITOR_DEFAULTTONEAREST = 2;
         private const int MDT_EFFECTIVE_DPI = 0;
         #endregion
+
+        private class NativeMonitorInfo
+        {
+            public string DeviceName { get; set; } = "";
+            public bool IsPrimary { get; set; }
+            public Rectangle PhysicalMonitor { get; set; }
+            public Rectangle PhysicalWorkArea { get; set; }
+            public uint DpiX { get; set; } = 96;
+            public uint DpiY { get; set; } = 96;
+            public double DpiScaleX => DpiX / 96.0;
+            public double DpiScaleY => DpiY / 96.0;
+        }
+
+        private static List<NativeMonitorInfo> GetNativeMonitors()
+        {
+            var list = new List<NativeMonitorInfo>();
+            try
+            {
+                EnumDisplayMonitors(IntPtr.Zero, IntPtr.Zero, (IntPtr hMon, IntPtr hdc, ref RECT rc, IntPtr data) =>
+                {
+                    var mi = new MONITORINFOEX();
+                    mi.cbSize = Marshal.SizeOf(typeof(MONITORINFOEX));
+                    if (GetMonitorInfo(hMon, ref mi))
+                    {
+                        uint dpiX = 96, dpiY = 96;
+                        try
+                        {
+                            int hr = GetDpiForMonitor(hMon, MDT_EFFECTIVE_DPI, out dpiX, out dpiY);
+                            if (hr != 0 || dpiX == 0 || dpiY == 0)
+                            {
+                                dpiX = 96;
+                                dpiY = 96;
+                            }
+                        }
+                        catch
+                        {
+                            dpiX = 96;
+                            dpiY = 96;
+                        }
+
+                        list.Add(new NativeMonitorInfo
+                        {
+                            DeviceName = mi.szDevice ?? "",
+                            IsPrimary = (mi.dwFlags & 1) != 0,
+                            PhysicalMonitor = new Rectangle(mi.rcMonitor.Left, mi.rcMonitor.Top, mi.rcMonitor.Right - mi.rcMonitor.Left, mi.rcMonitor.Bottom - mi.rcMonitor.Top),
+                            PhysicalWorkArea = new Rectangle(mi.rcWork.Left, mi.rcWork.Top, mi.rcWork.Right - mi.rcWork.Left, mi.rcWork.Bottom - mi.rcWork.Top),
+                            DpiX = dpiX,
+                            DpiY = dpiY
+                        });
+                    }
+                    return true;
+                }, IntPtr.Zero);
+            }
+            catch (Exception ex)
+            {
+                LoggerService.Warn($"EnumDisplayMonitors failed: {ex.Message}");
+            }
+            return list;
+        }
 
         /// <summary>
         /// Configurable safe margin in pixels from screen edges. Default: 15px.
@@ -151,6 +238,7 @@ namespace DesktopPet.Services
         /// <summary>
         /// Gets the current active viewport bounds in WPF Device-Independent Pixels (DIPs)
         /// with accurate DPI scaling and multi-monitor support.
+        /// Queries native Win32 GetMonitorInfo for true physical coordinates, then converts to DIPs.
         /// </summary>
         public static ViewportBounds GetViewport(int screenIndex = 0)
         {
@@ -161,15 +249,66 @@ namespace DesktopPet.Services
 
             try
             {
-                var screens = Screen.AllScreens;
-                if (screens.Length > 0)
+                // 1. Primary path: Native Win32 EnumDisplayMonitors + GetMonitorInfo
+                // This guarantees true physical device coordinates unaffected by WinForms DPI context variations
+                var nativeMonitors = GetNativeMonitors();
+                if (nativeMonitors.Count > 0)
                 {
-                    int idx = (screenIndex >= 0 && screenIndex < screens.Length) ? screenIndex : 0;
-                    var s = screens[idx];
+                    NativeMonitorInfo? target = null;
+
+                    // Match with Screen.AllScreens[screenIndex] by DeviceName (e.g. \\.\DISPLAY1)
+                    try
+                    {
+                        var screens = Screen.AllScreens;
+                        if (screens.Length > 0)
+                        {
+                            int sIdx = (screenIndex >= 0 && screenIndex < screens.Length) ? screenIndex : 0;
+                            var winFormsScreen = screens[sIdx];
+                            target = nativeMonitors.Find(m => string.Equals(m.DeviceName, winFormsScreen.DeviceName, StringComparison.OrdinalIgnoreCase));
+                        }
+                    }
+                    catch { }
+
+                    // Fallback: order by Primary first, then screenIndex
+                    if (target == null)
+                    {
+                        var ordered = new List<NativeMonitorInfo>(nativeMonitors);
+                        ordered.Sort((a, b) => b.IsPrimary.CompareTo(a.IsPrimary));
+                        int idx = (screenIndex >= 0 && screenIndex < ordered.Count) ? screenIndex : 0;
+                        target = ordered[idx];
+                    }
+
+                    double scaleX = target.DpiScaleX;
+                    double scaleY = target.DpiScaleY;
+
+                    // Convert true physical Win32 WorkArea to WPF Device-Independent Pixels (DIPs)
+                    double dipLeft = target.PhysicalWorkArea.Left / scaleX;
+                    double dipTop = target.PhysicalWorkArea.Top / scaleY;
+                    double dipWidth = target.PhysicalWorkArea.Width / scaleX;
+                    double dipHeight = target.PhysicalWorkArea.Height / scaleY;
+
+                    var vp = new ViewportBounds(dipLeft, dipTop, dipWidth, dipHeight, scaleX, scaleY)
+                    {
+                        DeviceLeft = target.PhysicalWorkArea.Left,
+                        DeviceTop = target.PhysicalWorkArea.Top,
+                        DeviceWidth = target.PhysicalWorkArea.Width,
+                        DeviceHeight = target.PhysicalWorkArea.Height,
+                        DeviceBounds = target.PhysicalMonitor,
+                        DpiX = target.DpiX,
+                        DpiY = target.DpiY
+                    };
+                    return vp;
+                }
+
+                // 2. Secondary fallback: WinForms Screen.AllScreens with DPI-awareness detection
+                var screensFallback = Screen.AllScreens;
+                if (screensFallback.Length > 0)
+                {
+                    int idx = (screenIndex >= 0 && screenIndex < screensFallback.Length) ? screenIndex : 0;
+                    var s = screensFallback[idx];
                     var devWork = s.WorkingArea;
                     var devBounds = s.Bounds;
 
-                    // Query accurate per-monitor DPI from SHCore.dll
                     uint dpiX = 96, dpiY = 96;
                     try
                     {
@@ -178,42 +317,58 @@ namespace DesktopPet.Services
                         if (hMon != IntPtr.Zero)
                         {
                             int hr = GetDpiForMonitor(hMon, MDT_EFFECTIVE_DPI, out dpiX, out dpiY);
-                            if (hr != 0 || dpiX == 0 || dpiY == 0)
-                            {
-                                dpiX = 96;
-                                dpiY = 96;
-                            }
+                            if (hr != 0 || dpiX == 0 || dpiY == 0) { dpiX = 96; dpiY = 96; }
                         }
                     }
-                    catch
-                    {
-                        dpiX = 96;
-                        dpiY = 96;
-                    }
+                    catch { dpiX = 96; dpiY = 96; }
 
                     double scaleX = dpiX / 96.0;
                     double scaleY = dpiY / 96.0;
 
-                    // Convert physical device WorkingArea to WPF DIPs
-                    double dipLeft = devWork.Left / scaleX;
-                    double dipTop = devWork.Top / scaleY;
-                    double dipWidth = devWork.Width / scaleX;
-                    double dipHeight = devWork.Height / scaleY;
+                    // Defensive check: If s.Bounds.Width is close to DIP width, WinForms already returned DIPs!
+                    bool isAlreadyDip = scaleX > 1.05 && devBounds.Width <= (SystemParameters.VirtualScreenWidth + 50);
 
-                    var vp = new ViewportBounds(dipLeft, dipTop, dipWidth, dipHeight, scaleX, scaleY)
+                    double dipLeft, dipTop, dipWidth, dipHeight;
+                    int finalDevLeft, finalDevTop, finalDevWidth, finalDevHeight;
+
+                    if (isAlreadyDip)
                     {
-                        DeviceLeft = devWork.Left,
-                        DeviceTop = devWork.Top,
-                        DeviceWidth = devWork.Width,
-                        DeviceHeight = devWork.Height,
-                        DeviceBounds = devBounds,
+                        dipLeft = devWork.Left;
+                        dipTop = devWork.Top;
+                        dipWidth = devWork.Width;
+                        dipHeight = devWork.Height;
+
+                        finalDevLeft = (int)Math.Round(devWork.Left * scaleX);
+                        finalDevTop = (int)Math.Round(devWork.Top * scaleY);
+                        finalDevWidth = (int)Math.Round(devWork.Width * scaleX);
+                        finalDevHeight = (int)Math.Round(devWork.Height * scaleY);
+                    }
+                    else
+                    {
+                        dipLeft = devWork.Left / scaleX;
+                        dipTop = devWork.Top / scaleY;
+                        dipWidth = devWork.Width / scaleX;
+                        dipHeight = devWork.Height / scaleY;
+
+                        finalDevLeft = devWork.Left;
+                        finalDevTop = devWork.Top;
+                        finalDevWidth = devWork.Width;
+                        finalDevHeight = devWork.Height;
+                    }
+
+                    return new ViewportBounds(dipLeft, dipTop, dipWidth, dipHeight, scaleX, scaleY)
+                    {
+                        DeviceLeft = finalDevLeft,
+                        DeviceTop = finalDevTop,
+                        DeviceWidth = finalDevWidth,
+                        DeviceHeight = finalDevHeight,
+                        DeviceBounds = new Rectangle(finalDevLeft, finalDevTop, finalDevWidth, finalDevHeight),
                         DpiX = dpiX,
                         DpiY = dpiY
                     };
-                    return vp;
                 }
 
-                // Fallback to WPF Primary WorkArea
+                // 3. Fallback to WPF Primary WorkArea
                 var wpfArea = SystemParameters.WorkArea;
                 if (wpfArea.Width > 0 && wpfArea.Height > 0)
                 {
@@ -267,9 +422,7 @@ namespace DesktopPet.Services
                 if (helper.Handle != IntPtr.Zero)
                 {
                     var (devX, devY) = vp.DipToDevice(dipLeft, dipTop);
-                    int devW = (int)Math.Round(win.Width * vp.DpiScaleX);
-                    int devH = (int)Math.Round(win.Height * vp.DpiScaleY);
-                    SetWindowPos(helper.Handle, IntPtr.Zero, devX, devY, devW, devH, SWP_NOZORDER | SWP_NOACTIVATE);
+                    SetWindowPos(helper.Handle, IntPtr.Zero, devX, devY, 0, 0, SWP_NOZORDER | SWP_NOACTIVATE | SWP_NOSIZE);
                 }
             }
             catch (Exception ex)

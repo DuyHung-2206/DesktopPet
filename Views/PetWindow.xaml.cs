@@ -164,7 +164,7 @@ namespace DesktopPet.Views
             ViewportService.SetWindowPosition(this, finalLeft, targetTop, monitorIdx);
 
             // Sync pet renderer exact canvas position so it always lands on petX
-            double petCanvasX = petX - Left;
+            double petCanvasX = petX - finalLeft;
             Canvas.SetLeft(PetRendererControl, petCanvasX);
 
             // 3. Responsive horizontal positioning for EmoteBubble (width 260) and StatusPopup (width 175)

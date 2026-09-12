@@ -129,7 +129,7 @@ namespace DesktopPet.ViewModels
                 var s = screens[i];
                 var vp = ViewportService.GetViewport(i);
                 var pct = (int)Math.Round(vp.DpiScaleX * 100);
-                var label = $"Màn hình {i + 1}: {s.Bounds.Width}x{s.Bounds.Height} ({pct}% DPI) {(s.Primary ? "(Chính)" : "")}";
+                var label = $"Màn hình {i + 1}: {vp.DeviceWidth}x{vp.DeviceHeight} ({pct}% DPI) {(s.Primary ? "(Chính)" : "")}";
                 MonitorOptions.Add(label);
             }
 

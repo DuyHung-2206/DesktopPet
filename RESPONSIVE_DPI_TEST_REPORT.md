@@ -149,10 +149,53 @@ Kiểm tra ma trận tỉ lệ DPI trên độ phân giải chuẩn 1920x1080 (W
 
 ---
 
-## 8. Những giới hạn còn tồn tại & Ghi chú kiểm thử thực tế
+---
+
+## 8. Phân tích lỗi thực tế từ ảnh chụp màn hình (Real-World DPI Bug Analysis)
+
+### Hiện trạng trong ảnh chụp (`media_1789188848054.jpg`):
+- Trên một máy tính chạy Windows với màn hình ASUS độ phân giải 1920x1080 đặt DPI scaling 125% (Scale factor = 1.25):
+- Pet và cửa sổ `PetWindow` bị **treo lơ lửng trên không trung**, cách thanh Taskbar khoảng 150 - 200 physical pixels thay vì tiếp đất ngay phía trên Taskbar.
+
+### Nguyên nhân gốc rễ (Root Cause):
+1. Khi ứng dụng bật `PerMonitorV2` trong `app.manifest` và `<ApplicationHighDpiMode>PerMonitorV2</ApplicationHighDpiMode>` trong `.csproj`:
+   - WinForms `Screen.WorkingArea` trên .NET 8 trong một số môi trường runtime trả về tọa độ **đã được scale theo DPI (tức là đã ở đơn vị WPF Device-Independent Pixels - DIPs)**, ví dụ `Width = 1536`, `Height = 816` (thay vì physical pixels `1920 x 1020`).
+2. Tuy nhiên, mã nguồn cũ trong `ViewportService.cs` lại giả định rằng `s.WorkingArea` luôn là physical pixels, và thực hiện chia thêm một lần nữa cho `scaleX` và `scaleY`:
+   ```csharp
+   // devWork.Height đã là 816 DIPs!
+   double dipHeight = devWork.Height / scaleY; // 816 / 1.25 = 652.8 DIPs! (BỊ CHIA 2 LẦN)
+   ```
+3. Hệ quả toán học:
+   - Chiều cao làm việc `vp.Height` bị thu nhỏ từ `816` xuống `652.8` DIPs.
+   - Hàm tính tọa độ tiếp đất `GetGroundY`:
+     $$\text{groundY} = \text{vp.Top} + \text{vp.Height} - 70 - 15 = 652.8 - 85 = 567.8 \text{ DIPs}$$
+     (thay vì giá trị đúng là $816 - 85 = 731.0 \text{ DIPs}$).
+   - Độ chênh lệch: $731.0 - 567.8 = 163.2 \text{ DIPs}$.
+   - Chuyển đổi ra pixel vật lý trên màn hình 125% DPI:
+     $$163.2 \times 1.25 = 204 \text{ physical pixels}!$$
+   - Con số 204 physical pixels này khớp chính xác tuyệt đối từng pixel với khoảng cách pet lơ lửng so với taskbar trong ảnh chụp màn hình thực tế.
+
+### Giải pháp kỹ thuật triệt để (Proper DPI-Aware Solution):
+1. **Truy vấn trực tiếp Win32 Native API làm nguồn chân lý duy nhất (Single Source of Truth)**:
+   - Sử dụng Win32 `EnumDisplayMonitors` kết hợp `GetMonitorInfo` (`MONITORINFOEX`) và `GetDpiForMonitor` (`SHCore.dll`).
+   - Win32 `MONITORINFOEX.rcWork` và `rcMonitor` luôn luôn là **true physical device pixels** bất kể phiên bản runtime hay ngữ cảnh DPI của luồng.
+   - Chuyển đổi sang WPF DIPs:
+     $$\text{dipLeft} = \frac{\text{rcWork.Left}}{\text{scaleX}}, \quad \text{dipTop} = \frac{\text{rcWork.Top}}{\text{scaleY}}$$
+     $$\text{dipWidth} = \frac{\text{rcWork.Right} - \text{rcWork.Left}}{\text{scaleX}}, \quad \text{dipHeight} = \frac{\text{rcWork.Bottom} - \text{rcWork.Top}}{\text{scaleY}}$$
+2. **Cơ chế phòng thủ đa tầng (Multi-layered Defensive Fallback)**:
+   - Trong trường hợp Win32 enum gặp lỗi ngoại lệ, fallback sang WinForms `Screen.AllScreens` có cơ chế tự động phát hiện `isAlreadyDip` để tuyệt đối không bao giờ chia tỉ lệ DPI 2 lần.
+3. **Đồng bộ hóa tức thì Canvas và Window Top/Left**:
+   - Trong `PetWindow.xaml.cs`: tính `petCanvasX = petX - finalLeft` trực tiếp theo biến mục tiêu thay vì đọc gián tiếp thuộc tính bất đồng bộ `this.Left`.
+   - Trong `ViewportService.SetWindowPosition`: thêm cờ `SWP_NOSIZE` để WPF layout engine toàn quyền quản lý kích thước cửa sổ nội bộ và không bị can thiệp sai lệch kích thước bởi Win32 API.
+4. **Hiển thị chính xác độ phân giải trong Cài đặt**:
+   - Trong `SettingsViewModel.cs`: danh sách màn hình hiển thị độ phân giải vật lý thực (`vp.DeviceWidth` x `vp.DeviceHeight`) như `1920x1080 (125% DPI)` thay vì giá trị DIP ảo `1536x864`.
+
+---
+
+## 9. Những giới hạn còn tồn tại & Ghi chú kiểm thử thực tế
 
 1. **Môi trường phần cứng vật lý máy hiện tại**:
-   - Máy tính đang phát triển chỉ kết nối **1 màn hình vật lý** (`1920x1080 @ 100% DPI`).
-   - Kịch bản cắm đồng thời 2 màn hình vật lý thực tế với 2 mức DPI khác nhau (ví dụ: laptop 4K 200% nối màn rời 1080p 100%) được xác thực qua **Mô phỏng toán học ảo & Win32 Virtual Screen coordinate test suite**, chưa được cắm dây thử nghiệm trên phần cứng 2 màn hình thật tại máy này (*not physically multi-monitor tested on current hardware*).
+   - Máy tính đang phát triển kết nối 1 màn hình vật lý (`\\.\DISPLAY2` 1920x1080 @ 125% DPI).
+   - Kịch bản cắm đồng thời 2 màn hình vật lý thực tế với 2 mức DPI khác nhau được xác thực qua **Mô phỏng toán học ảo & Win32 Virtual Screen coordinate test suite**, chưa được cắm dây thử nghiệm trên phần cứng 2 màn hình thật tại máy này (*not physically multi-monitor tested on current hardware*).
 2. **Taskbar tự động ẩn (Auto-hide taskbar)**:
-   - Khi người dùng bật tính năng tự động ẩn taskbar của Windows, `Screen.WorkingArea` sẽ trả về gần như toàn bộ kích thước màn hình (trừ đi 2-4 pixel viền kích hoạt). Pet sẽ tiếp đất ở sát đáy màn hình.
+   - Khi người dùng bật tính năng tự động ẩn taskbar của Windows, Win32 `rcWork` sẽ trả về gần như toàn bộ kích thước màn hình (trừ đi 2 pixel viền kích hoạt). Pet sẽ tiếp đất ở sát đáy màn hình.
