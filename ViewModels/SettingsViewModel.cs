@@ -110,6 +110,7 @@ namespace DesktopPet.ViewModels
             _save = petVM.GameSave;
 
             LoadMonitors();
+            ViewportService.ViewportChanged += _ => LoadMonitors();
 
             SaveSettingsCommand = new RelayCommand(() =>
             {
@@ -126,7 +127,9 @@ namespace DesktopPet.ViewModels
             for (int i = 0; i < screens.Length; i++)
             {
                 var s = screens[i];
-                var label = $"Màn hình {i + 1}: {s.Bounds.Width}x{s.Bounds.Height} {(s.Primary ? "(Chính)" : "")}";
+                var vp = ViewportService.GetViewport(i);
+                var pct = (int)Math.Round(vp.DpiScaleX * 100);
+                var label = $"Màn hình {i + 1}: {s.Bounds.Width}x{s.Bounds.Height} ({pct}% DPI) {(s.Primary ? "(Chính)" : "")}";
                 MonitorOptions.Add(label);
             }
 

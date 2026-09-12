@@ -10,7 +10,8 @@
         Background="Transparent"
         Topmost="True"
         ShowInTaskbar="False"
-        WindowState="Maximized">
+        WindowStartupLocation="Manual"
+        WindowState="Normal">
 
     <Canvas x:Name="GameCanvas">
         <!-- BẢNG ĐIỂM Ở GÓC TRÊN GIỮA MÀN HÌNH -->

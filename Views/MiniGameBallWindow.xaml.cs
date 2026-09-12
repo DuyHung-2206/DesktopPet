@@ -45,9 +45,15 @@ namespace DesktopPet.Views
             TimeTextBlock.Text = "Thời gian: 30s";
             WinPanel.Visibility = Visibility.Collapsed;
 
-            var vp = ViewportService.GetViewport(_petVM.GameSave.Settings.SelectedMonitorIndex);
-            var screenW = ActualWidth > 100 ? ActualWidth : vp.Width;
-            var screenH = ActualHeight > 100 ? ActualHeight : vp.Height;
+            var monitorIdx = _petVM.GameSave.Settings.SelectedMonitorIndex;
+            var vp = ViewportService.GetViewport(monitorIdx);
+
+            Width = vp.Width;
+            Height = vp.Height;
+            ViewportService.SetWindowPosition(this, vp.Left, vp.Top, monitorIdx);
+
+            var screenW = vp.Width;
+            var screenH = vp.Height;
 
             _ballX = Math.Max(ViewportService.SafeMargin, (screenW - 60) / 2);
             _ballY = Math.Max(70, (screenH - 60) / 2);
@@ -62,9 +68,10 @@ namespace DesktopPet.Views
             _ballX += _velX * dt;
             _ballY += _velY * dt;
 
-            var vp = ViewportService.GetViewport(_petVM.GameSave.Settings.SelectedMonitorIndex);
-            var screenW = ActualWidth > 100 ? ActualWidth : vp.Width;
-            var screenH = ActualHeight > 100 ? ActualHeight : vp.Height;
+            var monitorIdx = _petVM.GameSave.Settings.SelectedMonitorIndex;
+            var vp = ViewportService.GetViewport(monitorIdx);
+            var screenW = vp.Width;
+            var screenH = vp.Height;
             var m = ViewportService.SafeMargin;
 
             var minX = m;

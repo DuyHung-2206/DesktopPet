@@ -8,6 +8,10 @@
     <UseWPF>true</UseWPF>
     <UseWindowsForms>true</UseWindowsForms>
     <ApplicationIcon>Assets\Icons\app.ico</ApplicationIcon>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationHighDpiMode>PerMonitorV2</ApplicationHighDpiMode>
+    <NoWarn>$(NoWarn);WFAC010</NoWarn>
+    <DefaultItemExcludes>$(DefaultItemExcludes);scratch\**</DefaultItemExcludes>
     <RootNamespace>DesktopPet</RootNamespace>
     <AssemblyName>DesktopPet</AssemblyName>
     <StartupObject>DesktopPet.App</StartupObject>

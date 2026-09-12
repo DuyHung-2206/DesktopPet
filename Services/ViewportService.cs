@@ -1,13 +1,16 @@
 using System;
 using System.Drawing;
+using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Forms;
+using System.Windows.Interop;
 using Microsoft.Win32;
 
 namespace DesktopPet.Services
 {
     public class ViewportBounds
     {
+        // WPF Device-Independent Pixels (DIPs, 96 units per inch)
         public double Left { get; set; }
         public double Top { get; set; }
         public double Width { get; set; }
@@ -15,31 +18,97 @@ namespace DesktopPet.Services
         public double Right => Left + Width;
         public double Bottom => Top + Height;
 
-        public ViewportBounds(double left, double top, double width, double height)
+        // Monitor DPI scaling factors
+        public double DpiScaleX { get; set; } = 1.0;
+        public double DpiScaleY { get; set; } = 1.0;
+        public uint DpiX { get; set; } = 96;
+        public uint DpiY { get; set; } = 96;
+
+        // Win32 Physical Device Pixels
+        public int DeviceLeft { get; set; }
+        public int DeviceTop { get; set; }
+        public int DeviceWidth { get; set; }
+        public int DeviceHeight { get; set; }
+        public int DeviceRight => DeviceLeft + DeviceWidth;
+        public int DeviceBottom => DeviceTop + DeviceHeight;
+        public Rectangle DeviceWorkingArea => new Rectangle(DeviceLeft, DeviceTop, DeviceWidth, DeviceHeight);
+        public Rectangle DeviceBounds { get; set; }
+
+        public ViewportBounds(double left, double top, double width, double height, double dpiScaleX = 1.0, double dpiScaleY = 1.0)
         {
             Left = left;
             Top = top;
             Width = Math.Max(100, width);
             Height = Math.Max(100, height);
+            DpiScaleX = dpiScaleX > 0 ? dpiScaleX : 1.0;
+            DpiScaleY = dpiScaleY > 0 ? dpiScaleY : 1.0;
+            DpiX = (uint)Math.Round(DpiScaleX * 96.0);
+            DpiY = (uint)Math.Round(DpiScaleY * 96.0);
+
+            DeviceLeft = (int)Math.Round(left * DpiScaleX);
+            DeviceTop = (int)Math.Round(top * DpiScaleY);
+            DeviceWidth = (int)Math.Round(width * DpiScaleX);
+            DeviceHeight = (int)Math.Round(height * DpiScaleY);
+            DeviceBounds = new Rectangle(DeviceLeft, DeviceTop, DeviceWidth, DeviceHeight);
         }
 
-        public override string ToString() => $"Viewport[{Left:0}, {Top:0}, {Width:0}x{Height:0} (Right={Right:0}, Bottom={Bottom:0})]";
+        public (int deviceX, int deviceY) DipToDevice(double dipX, double dipY)
+        {
+            int devX = (int)Math.Round(DeviceLeft + (dipX - Left) * DpiScaleX);
+            int devY = (int)Math.Round(DeviceTop + (dipY - Top) * DpiScaleY);
+            return (devX, devY);
+        }
+
+        public (double dipX, double dipY) DeviceToDip(int devX, int devY)
+        {
+            double dipX = Left + (devX - DeviceLeft) / DpiScaleX;
+            double dipY = Top + (devY - DeviceTop) / DpiScaleY;
+            return (dipX, dipY);
+        }
+
+        public override string ToString() =>
+            $"Viewport[DIP: ({Left:0},{Top:0},{Width:0}x{Height:0}), Device: ({DeviceLeft},{DeviceTop},{DeviceWidth}x{DeviceHeight}), Scale: {DpiScaleX:0.##}x{DpiScaleY:0.##} ({DpiX}dpi)]";
     }
 
     /// <summary>
-    /// Centralized viewport and screen boundary utility.
-    /// Handles dynamic detection of screen resolution, DPI scaling, multi-monitor setups,
+    /// Centralized viewport, DPI awareness, and screen boundary utility.
+    /// Handles dynamic detection of screen resolution, per-monitor DPI scaling, multi-monitor setups,
     /// safe margin enforcement, position clamping, and responsive positioning of windows and overlays.
     /// </summary>
     public static class ViewportService
     {
+        #region Win32 P/Invoke
+        [DllImport("User32.dll")]
+        private static extern IntPtr MonitorFromPoint(POINT pt, uint dwFlags);
+
+        [DllImport("SHCore.dll")]
+        private static extern int GetDpiForMonitor(IntPtr hmonitor, int dpiType, out uint dpiX, out uint dpiY);
+
+        [DllImport("User32.dll", SetLastError = true)]
+        public static extern bool SetWindowPos(IntPtr hWnd, IntPtr hWndInsertAfter, int X, int Y, int cx, int cy, uint uFlags);
+
+        [StructLayout(LayoutKind.Sequential)]
+        private struct POINT
+        {
+            public int X;
+            public int Y;
+            public POINT(int x, int y) { X = x; Y = y; }
+        }
+
+        public const uint SWP_NOZORDER = 0x0004;
+        public const uint SWP_NOACTIVATE = 0x0010;
+        public const uint SWP_NOSIZE = 0x0001;
+        private const uint MONITOR_DEFAULTTONEAREST = 2;
+        private const int MDT_EFFECTIVE_DPI = 0;
+        #endregion
+
         /// <summary>
         /// Configurable safe margin in pixels from screen edges. Default: 15px.
         /// </summary>
         public static double SafeMargin { get; set; } = 15.0;
 
         /// <summary>
-        /// Optional viewport override for testing simulated screen sizes (e.g. 800x600, 1024x768).
+        /// Optional viewport override for testing simulated screen sizes and DPIs.
         /// </summary>
         public static ViewportBounds? SimulatedViewport { get; set; }
 
@@ -80,8 +149,8 @@ namespace DesktopPet.Services
         }
 
         /// <summary>
-        /// Gets the current active viewport bounds (working area excluding taskbar).
-        /// Falls back gracefully and supports multi-monitor and simulated viewports.
+        /// Gets the current active viewport bounds in WPF Device-Independent Pixels (DIPs)
+        /// with accurate DPI scaling and multi-monitor support.
         /// </summary>
         public static ViewportBounds GetViewport(int screenIndex = 0)
         {
@@ -93,23 +162,62 @@ namespace DesktopPet.Services
             try
             {
                 var screens = Screen.AllScreens;
-                if (screens.Length > 0 && screenIndex >= 0 && screenIndex < screens.Length)
+                if (screens.Length > 0)
                 {
-                    var area = screens[screenIndex].WorkingArea;
-                    return new ViewportBounds(area.Left, area.Top, area.Width, area.Height);
-                }
+                    int idx = (screenIndex >= 0 && screenIndex < screens.Length) ? screenIndex : 0;
+                    var s = screens[idx];
+                    var devWork = s.WorkingArea;
+                    var devBounds = s.Bounds;
 
-                if (Screen.PrimaryScreen != null)
-                {
-                    var area = Screen.PrimaryScreen.WorkingArea;
-                    return new ViewportBounds(area.Left, area.Top, area.Width, area.Height);
+                    // Query accurate per-monitor DPI from SHCore.dll
+                    uint dpiX = 96, dpiY = 96;
+                    try
+                    {
+                        var pt = new POINT(devBounds.Left + 10, devBounds.Top + 10);
+                        var hMon = MonitorFromPoint(pt, MONITOR_DEFAULTTONEAREST);
+                        if (hMon != IntPtr.Zero)
+                        {
+                            int hr = GetDpiForMonitor(hMon, MDT_EFFECTIVE_DPI, out dpiX, out dpiY);
+                            if (hr != 0 || dpiX == 0 || dpiY == 0)
+                            {
+                                dpiX = 96;
+                                dpiY = 96;
+                            }
+                        }
+                    }
+                    catch
+                    {
+                        dpiX = 96;
+                        dpiY = 96;
+                    }
+
+                    double scaleX = dpiX / 96.0;
+                    double scaleY = dpiY / 96.0;
+
+                    // Convert physical device WorkingArea to WPF DIPs
+                    double dipLeft = devWork.Left / scaleX;
+                    double dipTop = devWork.Top / scaleY;
+                    double dipWidth = devWork.Width / scaleX;
+                    double dipHeight = devWork.Height / scaleY;
+
+                    var vp = new ViewportBounds(dipLeft, dipTop, dipWidth, dipHeight, scaleX, scaleY)
+                    {
+                        DeviceLeft = devWork.Left,
+                        DeviceTop = devWork.Top,
+                        DeviceWidth = devWork.Width,
+                        DeviceHeight = devWork.Height,
+                        DeviceBounds = devBounds,
+                        DpiX = dpiX,
+                        DpiY = dpiY
+                    };
+                    return vp;
                 }
 
                 // Fallback to WPF Primary WorkArea
                 var wpfArea = SystemParameters.WorkArea;
                 if (wpfArea.Width > 0 && wpfArea.Height > 0)
                 {
-                    return new ViewportBounds(wpfArea.Left, wpfArea.Top, wpfArea.Width, wpfArea.Height);
+                    return new ViewportBounds(wpfArea.Left, wpfArea.Top, wpfArea.Width, wpfArea.Height, 1.0, 1.0);
                 }
             }
             catch (Exception ex)
@@ -118,13 +226,13 @@ namespace DesktopPet.Services
             }
 
             // Fallback safe resolution
-            return new ViewportBounds(0, 0, 1920, 1080);
+            return new ViewportBounds(0, 0, 1920, 1080, 1.0, 1.0);
         }
 
         public static Rectangle GetWorkingArea(int screenIndex = 0)
         {
             var vp = GetViewport(screenIndex);
-            return new Rectangle((int)vp.Left, (int)vp.Top, (int)vp.Width, (int)vp.Height);
+            return new Rectangle((int)Math.Round(vp.Left), (int)Math.Round(vp.Top), (int)Math.Round(vp.Width), (int)Math.Round(vp.Height));
         }
 
         public static int GetScreenCount()
@@ -136,6 +244,37 @@ namespace DesktopPet.Services
             catch
             {
                 return 1;
+            }
+        }
+
+        /// <summary>
+        /// Positions a WPF window reliably on a specific screen.
+        /// Sets WPF Left/Top in DIPs, and if HWND is available, uses Win32 SetWindowPos with device coordinates
+        /// to guarantee exact pixel positioning across multi-monitor setups with mixed DPI.
+        /// </summary>
+        public static void SetWindowPosition(System.Windows.Window win, double dipLeft, double dipTop, int screenIndex = 0)
+        {
+            var vp = GetViewport(screenIndex);
+
+            // 1. Update WPF window logical coordinates
+            win.Left = dipLeft;
+            win.Top = dipTop;
+
+            // 2. If HWND exists, apply exact physical placement via Win32 SetWindowPos
+            try
+            {
+                var helper = new WindowInteropHelper(win);
+                if (helper.Handle != IntPtr.Zero)
+                {
+                    var (devX, devY) = vp.DipToDevice(dipLeft, dipTop);
+                    int devW = (int)Math.Round(win.Width * vp.DpiScaleX);
+                    int devH = (int)Math.Round(win.Height * vp.DpiScaleY);
+                    SetWindowPos(helper.Handle, IntPtr.Zero, devX, devY, devW, devH, SWP_NOZORDER | SWP_NOACTIVATE);
+                }
+            }
+            catch (Exception ex)
+            {
+                LoggerService.Warn($"SetWindowPosition Win32 failed: {ex.Message}");
             }
         }
 
@@ -196,10 +335,10 @@ namespace DesktopPet.Services
 
         /// <summary>
         /// Automatically repositions a popup or window near the pet without covering the pet
-        /// and without getting clipped by viewport edges.
+        /// and without getting clipped by viewport edges or covered by the taskbar.
         /// </summary>
         public static void PositionWindowNearPet(
-            Window win, double petX, double petY, double petWidth, double petHeight, int screenIndex = 0)
+            System.Windows.Window win, double petX, double petY, double petWidth, double petHeight, int screenIndex = 0)
         {
             var vp = GetViewport(screenIndex);
             var m = SafeMargin;
@@ -244,8 +383,10 @@ namespace DesktopPet.Services
             double maxTop = Math.Max(minTop, vp.Bottom - win.Height - m);
             double targetTop = Math.Max(minTop, Math.Min(desiredTop, maxTop));
 
-            win.Left = Math.Max(vp.Left + m, Math.Min(targetLeft, vp.Right - win.Width - m));
-            win.Top = Math.Max(minTop, Math.Min(targetTop, maxTop));
+            double finalLeft = Math.Max(vp.Left + m, Math.Min(targetLeft, vp.Right - win.Width - m));
+            double finalTop = Math.Max(minTop, Math.Min(targetTop, maxTop));
+
+            SetWindowPosition(win, finalLeft, finalTop, screenIndex);
         }
     }
 }

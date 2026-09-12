@@ -105,15 +105,16 @@ namespace DesktopPet.Views
             bool placeOverlaysBelow = spaceAbove < 140.0;
 
             double petCanvasY;
+            double targetTop;
             if (placeOverlaysBelow)
             {
                 // Pet placed near the top inside the 360px window
                 petCanvasY = 20.0;
-                Top = petY - petCanvasY;
-                if (Top < vp.Top + m)
+                targetTop = petY - petCanvasY;
+                if (targetTop < vp.Top + m)
                 {
-                    Top = vp.Top + m;
-                    petCanvasY = petY - Top;
+                    targetTop = vp.Top + m;
+                    petCanvasY = petY - targetTop;
                 }
                 Canvas.SetTop(PetRendererControl, petCanvasY);
 
@@ -127,11 +128,11 @@ namespace DesktopPet.Views
             {
                 // Normal: overlays above pet, pet placed near bottom inside window
                 petCanvasY = 160.0;
-                Top = petY - petCanvasY;
-                if (Top + 360.0 > vp.Bottom - m)
+                targetTop = petY - petCanvasY;
+                if (targetTop + 360.0 > vp.Bottom - m)
                 {
-                    Top = Math.Max(vp.Top + m, vp.Bottom - m - 360.0);
-                    petCanvasY = petY - Top;
+                    targetTop = Math.Max(vp.Top + m, vp.Bottom - m - 360.0);
+                    petCanvasY = petY - targetTop;
                 }
                 Canvas.SetTop(PetRendererControl, petCanvasY);
 
@@ -146,18 +147,21 @@ namespace DesktopPet.Views
             double desiredPetCanvasX = 145.0; // pet centered in 360px window
             double targetLeft = petX - desiredPetCanvasX;
 
+            double finalLeft;
             if (targetLeft < vp.Left + m)
             {
-                Left = vp.Left + m;
+                finalLeft = vp.Left + m;
             }
             else if (targetLeft + 360.0 > vp.Right - m)
             {
-                Left = Math.Max(vp.Left + m, vp.Right - m - 360.0);
+                finalLeft = Math.Max(vp.Left + m, vp.Right - m - 360.0);
             }
             else
             {
-                Left = targetLeft;
+                finalLeft = targetLeft;
             }
+
+            ViewportService.SetWindowPosition(this, finalLeft, targetTop, monitorIdx);
 
             // Sync pet renderer exact canvas position so it always lands on petX
             double petCanvasX = petX - Left;
@@ -210,13 +214,20 @@ namespace DesktopPet.Views
                 var diffX = currentScreen.X - _dragStartScreenPoint.X;
                 var diffY = currentScreen.Y - _dragStartScreenPoint.Y;
 
-                if (Math.Abs(diffX) > 4 || Math.Abs(diffY) > 4)
+                // Chuyển đổi device pixel delta sang WPF DIP delta chính xác theo DPI hiện tại của Window
+                var dpi = System.Windows.Media.VisualTreeHelper.GetDpi(this);
+                double scaleX = dpi.DpiScaleX > 0 ? dpi.DpiScaleX : 1.0;
+                double scaleY = dpi.DpiScaleY > 0 ? dpi.DpiScaleY : 1.0;
+                var diffDipX = diffX / scaleX;
+                var diffDipY = diffY / scaleY;
+
+                if (Math.Abs(diffDipX) > 3 || Math.Abs(diffDipY) > 3)
                 {
                     _hasDraggedSignificantly = true;
                     var scale = _viewModel.GameSave.Settings.PetScale;
                     var petSize = PetBaseSize * scale;
-                    var targetX = _petStartPoint.X + diffX;
-                    var targetY = _petStartPoint.Y + diffY;
+                    var targetX = _petStartPoint.X + diffDipX;
+                    var targetY = _petStartPoint.Y + diffDipY;
 
                     // Clamping: Pet can never be dragged outside the visible viewport!
                     var (clampedX, clampedY) = ViewportService.ClampPosition(
@@ -230,6 +241,14 @@ namespace DesktopPet.Views
                     UpdatePosition();
                 }
             }
+        }
+
+        protected override void OnDpiChanged(DpiScale oldDpi, DpiScale newDpi)
+        {
+            base.OnDpiChanged(oldDpi, newDpi);
+            LoggerService.Info($"PetWindow DPI thay đổi: {oldDpi.PixelsPerInchX} -> {newDpi.PixelsPerInchX} (Scale: {newDpi.DpiScaleX})");
+            UpdatePosition();
+            UpdateRenderer();
         }
 
         private void OnPetMouseLeftButtonUp(object sender, MouseButtonEventArgs e)
