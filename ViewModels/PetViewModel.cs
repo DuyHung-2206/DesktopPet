@@ -424,7 +424,7 @@ namespace DesktopPet.ViewModels
         }
 
         private double _clickInactivityTimer = 0.0;
-        public const double InactivityThresholdSeconds = 60.0;
+        public const double InactivityThresholdSeconds = 3600.0;
         public double ClickInactivityTimer => _clickInactivityTimer;
 
         public void ResetInactivityTimer()
