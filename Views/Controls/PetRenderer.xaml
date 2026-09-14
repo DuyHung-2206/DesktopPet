@@ -4,8 +4,7 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              mc:Ignorable="d" 
-             d:DesignHeight="70" d:DesignWidth="70"
-             Width="70" Height="70">
+             d:DesignHeight="70" d:DesignWidth="70">
     <UserControl.Resources>
         <!-- Hoạt ảnh thở nhè nhẹ (Idle Breathing) -->
         <Storyboard x:Key="BreatheAnimation" RepeatBehavior="Forever" AutoReverse="True">
@@ -42,7 +41,7 @@
         </Storyboard>
     </UserControl.Resources>
 
-    <Viewbox Width="70" Height="70" Stretch="Uniform">
+    <Viewbox Stretch="Uniform">
         <Grid x:Name="RootGrid" Width="140" Height="140" RenderTransformOrigin="0.5, 1.0">
             <Grid.RenderTransform>
                 <TransformGroup>
@@ -55,11 +54,67 @@
             <!-- BÓNG ĐỔ DƯỚI CHÂN (SHADOW) -->
             <Ellipse Width="85" Height="16" Fill="#33000000" VerticalAlignment="Bottom" Margin="0,0,0,6" />
 
-            <!-- 1. HÌNH ẢNH SPRITE THỰC TẾ (PIXEL ART CHUẨN NEAREST-NEIGHBOR KHÔNG MỜ) -->
+            <!-- LỚP PHỤ KIỆN 1: BALO (Z-INDEX PHÍA SAU THÂN PET) -->
+            <Image x:Name="BackpackOverlayImage" Width="128" Height="128" VerticalAlignment="Bottom" HorizontalAlignment="Center" Margin="0,0,0,-4" Visibility="Collapsed"
+                   RenderOptions.BitmapScalingMode="NearestNeighbor"
+                   RenderOptions.EdgeMode="Aliased"
+                   SnapsToDevicePixels="True" IsHitTestVisible="False">
+                <Image.RenderTransform>
+                    <TransformGroup>
+                        <ScaleTransform x:Name="BackpackScale" ScaleX="1" ScaleY="1" />
+                        <RotateTransform x:Name="BackpackRotate" Angle="0" CenterX="32" CenterY="82" />
+                        <TranslateTransform x:Name="BackpackOffset" X="0" Y="0" />
+                    </TransformGroup>
+                </Image.RenderTransform>
+            </Image>
+
+            <!-- LỚP THÂN PET: HÌNH ẢNH SPRITE THỰC TẾ (PIXEL ART CHUẨN NEAREST-NEIGHBOR) -->
             <Image x:Name="SpriteImage" Width="128" Height="128" VerticalAlignment="Bottom" HorizontalAlignment="Center" Margin="0,0,0,-4" Visibility="Collapsed"
                    RenderOptions.BitmapScalingMode="NearestNeighbor"
                    RenderOptions.EdgeMode="Aliased"
                    SnapsToDevicePixels="True" />
+
+            <!-- LỚP PHỤ KIỆN 2: MŨ / ĐẦU (TRÊN ĐẦU PET) -->
+            <Image x:Name="HatOverlayImage" Width="128" Height="128" VerticalAlignment="Bottom" HorizontalAlignment="Center" Margin="0,0,0,-4" Visibility="Collapsed"
+                   RenderOptions.BitmapScalingMode="NearestNeighbor"
+                   RenderOptions.EdgeMode="Aliased"
+                   SnapsToDevicePixels="True" IsHitTestVisible="False">
+                <Image.RenderTransform>
+                    <TransformGroup>
+                        <ScaleTransform x:Name="HatScale" ScaleX="1" ScaleY="1" />
+                        <RotateTransform x:Name="HatRotate" Angle="0" CenterX="64" CenterY="44" />
+                        <TranslateTransform x:Name="HatOffset" X="0" Y="0" />
+                    </TransformGroup>
+                </Image.RenderTransform>
+            </Image>
+
+            <!-- LỚP PHỤ KIỆN 3: KÍNH / MẮT (TRÊN ĐẦU VÀ MẮT PET) -->
+            <Image x:Name="GlassesOverlayImage" Width="128" Height="128" VerticalAlignment="Bottom" HorizontalAlignment="Center" Margin="0,0,0,-4" Visibility="Collapsed"
+                   RenderOptions.BitmapScalingMode="NearestNeighbor"
+                   RenderOptions.EdgeMode="Aliased"
+                   SnapsToDevicePixels="True" IsHitTestVisible="False">
+                <Image.RenderTransform>
+                    <TransformGroup>
+                        <ScaleTransform x:Name="GlassesScale" ScaleX="1" ScaleY="1" />
+                        <RotateTransform x:Name="GlassesRotate" Angle="0" CenterX="66" CenterY="66" />
+                        <TranslateTransform x:Name="GlassesOffset" X="0" Y="0" />
+                    </TransformGroup>
+                </Image.RenderTransform>
+            </Image>
+
+            <!-- LỚP PHỤ KIỆN 4: NƠ / CỔ (TRÊN THÂN/CỔ PET) -->
+            <Image x:Name="BowOverlayImage" Width="128" Height="128" VerticalAlignment="Bottom" HorizontalAlignment="Center" Margin="0,0,0,-4" Visibility="Collapsed"
+                   RenderOptions.BitmapScalingMode="NearestNeighbor"
+                   RenderOptions.EdgeMode="Aliased"
+                   SnapsToDevicePixels="True" IsHitTestVisible="False">
+                <Image.RenderTransform>
+                    <TransformGroup>
+                        <ScaleTransform x:Name="BowScale" ScaleX="1" ScaleY="1" />
+                        <RotateTransform x:Name="BowRotate" Angle="0" CenterX="66" CenterY="88" />
+                        <TranslateTransform x:Name="BowOffset" X="0" Y="0" />
+                    </TransformGroup>
+                </Image.RenderTransform>
+            </Image>
 
         <!-- 2. BỘ RENDER VECTOR PROCEDURAL CỰC ĐẸP (HOẠT ĐỘNG 100% OFFLINE KHÔNG CẦN ASSET NGOÀI) -->
         <Canvas x:Name="VectorPetCanvas" Width="140" Height="140">

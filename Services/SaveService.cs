@@ -205,6 +205,19 @@ namespace DesktopPet.Services
                 activePet.Y = clampedY;
             }
 
+            // Đảm bảo hệ thống trang bị (EquippedItems) được khởi tạo và chuẩn hóa slot
+            activePet.EquippedItems ??= new Dictionary<string, string>();
+            var normalizedEquipment = new Dictionary<string, string>();
+            foreach (var kvp in activePet.EquippedItems)
+            {
+                var normSlot = EquipmentSlots.NormalizeSlot(kvp.Key);
+                if (!string.IsNullOrEmpty(normSlot) && !string.IsNullOrEmpty(kvp.Value))
+                {
+                    normalizedEquipment[normSlot] = kvp.Value;
+                }
+            }
+            activePet.EquippedItems = normalizedEquipment;
+
             // Đảm bảo hệ thống nhu cầu (Needs) được khởi tạo đầy đủ
             activePet.Needs ??= new Dictionary<string, PetNeedState>();
             foreach (var needType in PetNeedTypes.All)
@@ -214,6 +227,7 @@ namespace DesktopPet.Services
                     activePet.Needs[needType] = new PetNeedState();
                 }
             }
+
 
             // Chế độ chill: Tự động nạp tất cả vật phẩm với số lượng vô hạn (999)
             foreach (var item in DataManager.Instance.ItemsList)

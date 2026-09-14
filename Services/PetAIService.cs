@@ -9,6 +9,8 @@ namespace DesktopPet.Services
         private readonly Random _rand = new();
         private double _stateTimer = 0.0;
         private double _targetX = 0.0;
+        private double _happyElapsed = 0.0;
+        private int _happyInitialDirection = 1; // 1: nhảy sang phải, -1: nhảy sang trái
 
         // Trạng thái rơi tự do (Physics)
         public bool IsFalling { get; set; } = false;
@@ -48,8 +50,8 @@ namespace DesktopPet.Services
                 return;
             }
 
-            // Đảm bảo pet không lơ lửng nếu không rơi
-            if (pet.Y < groundY && pet.State != PetState.Jump && pet.State != PetState.Fall)
+            // Đảm bảo pet không lơ lửng nếu không rơi (trừ khi đang nhảy Jump, Fall hoặc Happy)
+            if (pet.Y < groundY && pet.State != PetState.Jump && pet.State != PetState.Fall && pet.State != PetState.Happy)
             {
                 pet.Y = groundY;
             }
@@ -125,9 +127,55 @@ namespace DesktopPet.Services
                 case PetState.Eat:
                 case PetState.Play:
                 case PetState.Bath:
-                case PetState.Happy:
                     if (_stateTimer <= 0)
                     {
+                        pet.State = PetState.Idle;
+                        _stateTimer = _rand.Next(25, 40);
+                    }
+                    break;
+
+                case PetState.Happy:
+                    _happyElapsed += deltaTime;
+
+                    // Kiểm tra biên màn hình ở nhịp đầu tiên để hướng nhảy không đâm vào mép
+                    if (_happyElapsed <= deltaTime * 2.0)
+                    {
+                        if (pet.X + 80 > workArea.Right - 50)
+                            _happyInitialDirection = -1;
+                        else if (pet.X - 80 < workArea.Left + 50)
+                            _happyInitialDirection = 1;
+                    }
+
+                    const double cycleDuration = 0.72; // 6 frames x 120ms mỗi chu kỳ hoạt ảnh Happy
+                    int cycleIndex = (int)(_happyElapsed / cycleDuration);
+                    double cycleTime = _happyElapsed - (cycleIndex * cycleDuration);
+
+                    // Đổi hướng nhảy qua nhảy lại giữa các chu kỳ (Chu kỳ 0, 2: nhảy sang một bên; Chu kỳ 1, 3: nhảy ngược lại)
+                    int currentDir = (cycleIndex % 2 == 0) ? _happyInitialDirection : -_happyInitialDirection;
+                    pet.IsFacingLeft = (currentDir < 0);
+
+                    // Khoảng thời gian trên không (Airborne) trong mỗi chu kỳ 0.72s:
+                    // Frame 0 (0.00 -> 0.12s): Chuẩn bị bật nhảy (trên mặt đất)
+                    // Frame 1-3 (0.12 -> 0.50s): Đang bay trên không (nhảy vòng cung)
+                    // Frame 4-5 (0.50 -> 0.72s): Tiếp đất và chuẩn bị cho cú nhảy tiếp theo
+                    if (cycleTime >= 0.12 && cycleTime <= 0.50)
+                    {
+                        double airProgress = (cycleTime - 0.12) / (0.50 - 0.12); // 0.0 -> 1.0
+                        double jumpSpeed = Math.Sin(airProgress * Math.PI) * 170.0; // Vận tốc ngang hình sin
+                        pet.X += currentDir * jumpSpeed * deltaTime;
+
+                        // Độ cao nhảy vòng cung lên khỏi mặt đất (12 DIP)
+                        double jumpArc = Math.Sin(airProgress * Math.PI) * 12.0;
+                        pet.Y = groundY - jumpArc;
+                    }
+                    else
+                    {
+                        pet.Y = groundY;
+                    }
+
+                    if (_stateTimer <= 0)
+                    {
+                        pet.Y = groundY;
                         pet.State = PetState.Idle;
                         _stateTimer = _rand.Next(25, 40);
                     }
@@ -185,9 +233,7 @@ namespace DesktopPet.Services
             else if (roll < 85)
             {
                 // Hào hứng nhảy nhót (Happy)
-                pet.State = PetState.Happy;
-                _stateTimer = 2.0;
-                AudioService.Instance.PlayHappy();
+                TriggerHappy(pet);
             }
             else
             {
@@ -217,8 +263,11 @@ namespace DesktopPet.Services
 
         public void TriggerHappy(Pet pet)
         {
+            if (pet == null) return;
             pet.State = PetState.Happy;
-            _stateTimer = 2.5;
+            _stateTimer = 2.88; // Đúng 4 chu kỳ nhảy (mỗi chu kỳ 0.72s = 6 frames x 120ms)
+            _happyElapsed = 0.0;
+            _happyInitialDirection = pet.IsFacingLeft ? -1 : 1;
             AudioService.Instance.PlayHappy();
         }
 

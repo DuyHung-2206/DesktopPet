@@ -24,6 +24,7 @@ bld/
 Publish/
 Build/
 Installer/
+Output/
 *.zip
 
 # Windows temporary files

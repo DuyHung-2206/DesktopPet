@@ -14,7 +14,10 @@ namespace DesktopPet.Models
         public string Category { get; set; } = "Food"; // Food, Toy, Accessory
 
         [JsonPropertyName("slot")]
-        public string? Slot { get; set; } // Head, Eyes, Back (dành cho trang phục)
+        public string? Slot { get; set; } // Hat, Glasses, Bow, Backpack
+
+        [JsonPropertyName("overlayAsset")]
+        public string? OverlayAsset { get; set; }
 
         [JsonPropertyName("icon")]
         public string Icon { get; set; } = "🍎";

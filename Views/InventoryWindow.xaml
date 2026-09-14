@@ -73,6 +73,12 @@
                                         <RowDefinition Height="Auto" />
                                     </Grid.RowDefinitions>
 
+                                    <!-- Huy hiệu Đang Mặc góc trên trái -->
+                                    <Border Grid.Row="0" HorizontalAlignment="Left" Background="#E91E63" CornerRadius="8" Padding="5,2"
+                                            Visibility="{Binding ShowEquippedBadge, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                        <TextBlock Text="✓ Đang mặc" FontWeight="Bold" FontSize="10" Foreground="White" />
+                                    </Border>
+
                                     <!-- Số lượng góc trên phải -->
                                     <Border Grid.Row="0" HorizontalAlignment="Right" Background="#689F38" CornerRadius="8" Padding="6,2">
                                         <TextBlock Text="{Binding QuantityDisplay}" FontWeight="Bold" FontSize="12" Foreground="White" />
@@ -89,10 +95,10 @@
                                     <TextBlock Grid.Row="1" Text="{Binding Description}" FontSize="10" Foreground="#78909C"
                                                TextAlignment="Center" TextWrapping="Wrap" VerticalAlignment="Center" MaxHeight="30" />
 
-                                    <!-- Nút Sử Dụng / Mặc Vào -->
+                                    <!-- Nút Sử Dụng / Mặc / Tháo Ra -->
                                     <Button Grid.Row="2" Command="{Binding DataContext.UseItemCommand, RelativeSource={RelativeSource AncestorType=Window}}"
                                             CommandParameter="{Binding}"
-                                            Height="30" Background="#7CB342" BorderThickness="0" Cursor="Hand">
+                                            Height="30" Background="{Binding ButtonBackground}" BorderThickness="0" Cursor="Hand">
                                         <Button.Resources>
                                             <Style TargetType="Border">
                                                 <Setter Property="CornerRadius" Value="10" />
@@ -100,6 +106,7 @@
                                         </Button.Resources>
                                         <TextBlock Text="{Binding ActionText}" FontWeight="Bold" Foreground="White" FontSize="12" />
                                     </Button>
+
                                 </Grid>
                             </Border>
                         </DataTemplate>

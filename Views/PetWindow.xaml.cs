@@ -34,6 +34,7 @@ namespace DesktopPet.Views
             };
 
             _viewModel.RequestPlayAnimation += OnRequestPlayAnimation;
+            _viewModel.AppearanceChanged += OnAppearanceChanged;
 
             _viewModel.PropertyChanged += OnViewModelPropertyChanged;
 
@@ -48,8 +49,15 @@ namespace DesktopPet.Views
             {
                 ViewportService.ViewportChanged -= OnViewportChanged;
                 _viewModel.RequestPlayAnimation -= OnRequestPlayAnimation;
+                _viewModel.AppearanceChanged -= OnAppearanceChanged;
             };
         }
+
+        private void OnAppearanceChanged()
+        {
+            Dispatcher.Invoke(UpdateRenderer);
+        }
+
 
         private void OnRequestPlayAnimation(string animName)
         {
@@ -80,10 +88,18 @@ namespace DesktopPet.Views
                      e.PropertyName == nameof(PetViewModel.BaseColor) ||
                      e.PropertyName == nameof(PetViewModel.EquippedHeadIcon) ||
                      e.PropertyName == nameof(PetViewModel.EquippedEyesIcon) ||
-                     e.PropertyName == nameof(PetViewModel.EquippedBackIcon))
+                     e.PropertyName == nameof(PetViewModel.EquippedBackIcon) ||
+                     e.PropertyName == nameof(PetViewModel.EquippedHatIcon) ||
+                     e.PropertyName == nameof(PetViewModel.EquippedGlassesIcon) ||
+                     e.PropertyName == nameof(PetViewModel.EquippedBowIcon) ||
+                     e.PropertyName == nameof(PetViewModel.EquippedBackpackIcon) ||
+                     e.PropertyName == nameof(PetViewModel.PetScale) ||
+                     e.PropertyName == "EquippedItems")
             {
+                UpdatePosition();
                 UpdateRenderer();
             }
+
         }
 
         private const double PetBaseSize = 70.0;
@@ -98,6 +114,9 @@ namespace DesktopPet.Views
             var petSize = PetBaseSize * scale;
             var petX = _viewModel.X;
             var petY = _viewModel.Y;
+
+            PetRendererControl.Width = petSize;
+            PetRendererControl.Height = petSize;
 
             // 1. Check vertical space above pet to decide if overlays (StatusPopup & EmoteBubble)
             // sit above or below the pet
@@ -186,7 +205,7 @@ namespace DesktopPet.Views
 
         private void UpdateRenderer()
         {
-            PetRendererControl.UpdateAppearance(_viewModel.Pet, _viewModel.Species);
+            PetRendererControl.UpdateAppearance(_viewModel.Pet, _viewModel.Species, _viewModel.PetScale);
         }
 
         private void OnPetMouseLeftButtonDown(object sender, MouseButtonEventArgs e)

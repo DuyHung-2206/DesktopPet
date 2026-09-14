@@ -54,6 +54,7 @@ namespace DesktopPet.ViewModels
         public string DisplayName => $"{_pet.Name} ({_species?.Name ?? "Pet"})";
         public string BaseColor => _species?.BaseColor ?? "#FFA726";
         public string SecondaryColor => _species?.SecondaryColor ?? "#FFE082";
+        public double PetScale => _save.Settings?.PetScale ?? 1.0;
 
         public bool IsStatusPopupOpen
         {
@@ -74,35 +75,83 @@ namespace DesktopPet.ViewModels
         }
 
         // Icon trang phục
-        public string? EquippedHeadIcon
+        public string? EquippedHatIcon
         {
             get
             {
-                if (_pet.EquippedItems.TryGetValue("Head", out var itemId))
-                    return DataManager.Instance.GetItem(itemId)?.Icon;
-                return null;
+                var itemId = _pet.GetEquippedItem(EquipmentSlots.Hat);
+                return itemId != null ? DataManager.Instance.GetItem(itemId)?.Icon : null;
             }
         }
 
-        public string? EquippedEyesIcon
+        public string? EquippedGlassesIcon
         {
             get
             {
-                if (_pet.EquippedItems.TryGetValue("Eyes", out var itemId))
-                    return DataManager.Instance.GetItem(itemId)?.Icon;
-                return null;
+                var itemId = _pet.GetEquippedItem(EquipmentSlots.Glasses);
+                return itemId != null ? DataManager.Instance.GetItem(itemId)?.Icon : null;
             }
         }
 
-        public string? EquippedBackIcon
+        public string? EquippedBowIcon
         {
             get
             {
-                if (_pet.EquippedItems.TryGetValue("Back", out var itemId))
-                    return DataManager.Instance.GetItem(itemId)?.Icon;
-                return null;
+                var itemId = _pet.GetEquippedItem(EquipmentSlots.Bow);
+                return itemId != null ? DataManager.Instance.GetItem(itemId)?.Icon : null;
             }
         }
+
+        public string? EquippedBackpackIcon
+        {
+            get
+            {
+                var itemId = _pet.GetEquippedItem(EquipmentSlots.Backpack);
+                return itemId != null ? DataManager.Instance.GetItem(itemId)?.Icon : null;
+            }
+        }
+
+        // Backward compatibility properties
+        public string? EquippedHeadIcon => EquippedHatIcon;
+        public string? EquippedEyesIcon => EquippedGlassesIcon;
+        public string? EquippedBackIcon => EquippedBackpackIcon;
+
+        public event Action? AppearanceChanged;
+
+        public void NotifyAppearanceChanged()
+        {
+            OnPropertyChanged(nameof(EquippedHeadIcon));
+            OnPropertyChanged(nameof(EquippedEyesIcon));
+            OnPropertyChanged(nameof(EquippedBackIcon));
+            OnPropertyChanged(nameof(EquippedHatIcon));
+            OnPropertyChanged(nameof(EquippedGlassesIcon));
+            OnPropertyChanged(nameof(EquippedBowIcon));
+            OnPropertyChanged(nameof(EquippedBackpackIcon));
+            OnPropertyChanged("EquippedItems");
+            AppearanceChanged?.Invoke();
+        }
+
+        public void EquipItem(Item item)
+        {
+            if (item == null || string.IsNullOrEmpty(item.Slot)) return;
+            _pet.EquipItem(item.Slot, item.Id);
+            AudioService.Instance.PlayLevelUp();
+            ShowEmote($"Đã diện {item.Icon} {item.Name}! ✨", 2.0);
+            SaveService.Instance.SaveGame(_save);
+            NotifyAppearanceChanged();
+        }
+
+        public void UnequipItem(Item item)
+        {
+            if (item == null) return;
+            _pet.UnequipItem(item.Id);
+            AudioService.Instance.PlayClick();
+            ShowEmote($"Đã tháo {item.Icon}!", 1.5);
+            SaveService.Instance.SaveGame(_save);
+            NotifyAppearanceChanged();
+        }
+
+        public bool IsItemEquipped(string itemId) => _pet.IsItemEquipped(itemId);
 
         // Commands
         public ICommand ClickPetCommand { get; }
@@ -211,6 +260,7 @@ namespace DesktopPet.ViewModels
             var petHeight = 70.0 * _save.Settings.PetScale;
 
             var oldState = _pet.State;
+            var oldFacing = _pet.IsFacingLeft;
             _aiService.UpdateAI(_pet, _species, dt, _save.Settings.SelectedMonitorIndex, petWidth, petHeight);
 
             OnPropertyChanged(nameof(X));
@@ -219,7 +269,10 @@ namespace DesktopPet.ViewModels
             {
                 OnPropertyChanged(nameof(State));
             }
-            OnPropertyChanged(nameof(IsFacingLeft));
+            if (_pet.IsFacingLeft != oldFacing)
+            {
+                OnPropertyChanged(nameof(IsFacingLeft));
+            }
         }
 
         private double _spontaneousNeedTimer = 0.0;
@@ -650,10 +703,16 @@ namespace DesktopPet.ViewModels
             OnPropertyChanged(nameof(EquippedHeadIcon));
             OnPropertyChanged(nameof(EquippedEyesIcon));
             OnPropertyChanged(nameof(EquippedBackIcon));
+            OnPropertyChanged(nameof(EquippedHatIcon));
+            OnPropertyChanged(nameof(EquippedGlassesIcon));
+            OnPropertyChanged(nameof(EquippedBowIcon));
+            OnPropertyChanged(nameof(EquippedBackpackIcon));
+            OnPropertyChanged("EquippedItems");
             OnPropertyChanged(nameof(X));
             OnPropertyChanged(nameof(Y));
             OnPropertyChanged(nameof(State));
             OnPropertyChanged(nameof(IsFacingLeft));
+            AppearanceChanged?.Invoke();
         }
 
         public void PetViewModel_ApplyItem(Item item)

@@ -113,19 +113,14 @@ namespace DesktopPet.ViewModels
             // Chế độ chill: Tự do dùng đồ / trang bị cho bé ngay lập tức hoàn toàn miễn phí
             if (def.Category == "Accessory" && def.Slot != null)
             {
-                if (_petVM.Pet.EquippedItems.TryGetValue(def.Slot, out var currentEquipped) && currentEquipped == def.Id)
+                if (_petVM.IsItemEquipped(def.Id))
                 {
-                    _petVM.Pet.EquippedItems.Remove(def.Slot);
-                    AudioService.Instance.PlayClick();
-                    _petVM.ShowEmote($"Đã tháo {def.Icon}!", 1.5);
+                    _petVM.UnequipItem(def);
                 }
                 else
                 {
-                    _petVM.Pet.EquippedItems[def.Slot] = def.Id;
-                    AudioService.Instance.PlayLevelUp();
-                    _petVM.ShowEmote($"Đã diện {def.Icon} {def.Name}! Đẹp xinh lung linh! ✨", 2.0);
+                    _petVM.EquipItem(def);
                 }
-                _petVM.NotifyAllProperties();
             }
             else
             {

@@ -17,8 +17,10 @@ namespace DesktopPet.ViewModels
         public string Description { get; set; } = string.Empty;
         public int Quantity { get; set; } = 999;
         public string QuantityDisplay => "∞";
-        public string ActionText => Category == "Accessory" ? (IsEquipped ? "Tháo Ra" : "Mặc Vào") : "Sử Dụng";
         public bool IsEquipped { get; set; }
+        public string ActionText => Category == "Accessory" ? (IsEquipped ? "Tháo Ra" : "Mặc") : "Sử Dụng";
+        public bool ShowEquippedBadge => Category == "Accessory" && IsEquipped;
+        public string ButtonBackground => Category == "Accessory" && IsEquipped ? "#E64A19" : "#7CB342";
     }
 
     public class InventoryViewModel : ViewModelBase
@@ -52,6 +54,8 @@ namespace DesktopPet.ViewModels
             UseItemCommand = new RelayCommand<InventoryItemDisplay>(UseItem);
             SelectCategoryCommand = new RelayCommand<string>(cat => SelectedCategory = cat ?? "Tất Cả");
 
+            _petVM.AppearanceChanged += RefreshInventory;
+
             RefreshInventory();
         }
 
@@ -65,11 +69,7 @@ namespace DesktopPet.ViewModels
                 if (_selectedCategory != "Tất Cả" && !MatchesCategory(def.Category, _selectedCategory))
                     continue;
 
-                var isEquipped = false;
-                if (def.Category == "Accessory" && def.Slot != null)
-                {
-                    isEquipped = _petVM.Pet.EquippedItems.TryGetValue(def.Slot, out var eqId) && eqId == def.Id;
-                }
+                var isEquipped = def.Category == "Accessory" && _petVM.IsItemEquipped(def.Id);
 
                 Items.Add(new InventoryItemDisplay
                 {
@@ -106,20 +106,14 @@ namespace DesktopPet.ViewModels
             if (def.Category == "Accessory" && def.Slot != null)
             {
                 // Mặc / Tháo phụ kiện
-                if (_petVM.Pet.EquippedItems.TryGetValue(def.Slot, out var currentEquipped) && currentEquipped == def.Id)
+                if (_petVM.IsItemEquipped(def.Id))
                 {
-                    _petVM.Pet.EquippedItems.Remove(def.Slot);
-                    AudioService.Instance.PlayClick();
-                    _petVM.ShowEmote($"Đã tháo {def.Icon}!", 1.5);
+                    _petVM.UnequipItem(def);
                 }
                 else
                 {
-                    _petVM.Pet.EquippedItems[def.Slot] = def.Id;
-                    AudioService.Instance.PlayLevelUp();
-                    _petVM.ShowEmote($"Đã diện {def.Icon} {def.Name}! Trông thật phong cách! ✨", 2.0);
+                    _petVM.EquipItem(def);
                 }
-
-                _petVM.NotifyAllProperties();
             }
             else
             {
@@ -131,4 +125,5 @@ namespace DesktopPet.ViewModels
             RefreshInventory();
         }
     }
+
 }
