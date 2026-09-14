@@ -45,9 +45,7 @@ namespace DesktopPet.Services
                     pet.Y = groundY;
                     _verticalVelocity = 0.0;
                     IsFalling = false;
-                    pet.State = PetState.Idle;
-                    _stateTimer = 1.5; // Dừng lại thở sau cú rơi
-                    AudioService.Instance.PlayHappy();
+                    TriggerHurt(pet);
                 }
 
                 (pet.X, pet.Y) = ViewportService.ClampPosition(pet.X, pet.Y, petWidth, petHeight, screenIndex);
@@ -116,10 +114,26 @@ namespace DesktopPet.Services
                     break;
 
                 case PetState.Sit:
-                case PetState.Dirty:
-                case PetState.Sick:
                 case PetState.Sad:
                     if (_stateTimer <= 0)
+                    {
+                        pet.State = GetDefaultNextState(pet);
+                        _stateTimer = _rand.Next(25, 40);
+                    }
+                    break;
+
+                case PetState.Dirty:
+                    // Trong khi Cleanliness < 35, duy trì trạng thái Dirty (Rule 4)
+                    if (pet.Cleanliness >= 35 && _stateTimer <= 0)
+                    {
+                        pet.State = PetState.Idle;
+                        _stateTimer = _rand.Next(25, 40);
+                    }
+                    break;
+
+                case PetState.Sick:
+                    // Sick là trạng thái lặp
+                    if (!pet.IsSick && _stateTimer <= 0)
                     {
                         pet.State = PetState.Idle;
                         _stateTimer = _rand.Next(25, 40);
@@ -144,7 +158,12 @@ namespace DesktopPet.Services
                     if (_stateTimer <= 0)
                     {
                         var def = AnimationRegistry.GetDefinition(pet.State);
-                        pet.State = def.CompletionState ?? PetState.Idle;
+                        var nextState = def.CompletionState ?? PetState.Idle;
+                        if (nextState == PetState.Idle)
+                        {
+                            nextState = GetDefaultNextState(pet);
+                        }
+                        pet.State = nextState;
                         _stateTimer = _rand.Next(20, 35);
                     }
                     break;
@@ -209,13 +228,31 @@ namespace DesktopPet.Services
             (pet.X, pet.Y) = ViewportService.ClampPosition(pet.X, pet.Y, petWidth, petHeight, screenIndex);
         }
 
-        private void DecideNextAction(Pet pet, Rectangle workArea, double petWidth, double petHeight)
+        public void DecideNextAction(Pet pet, Rectangle workArea = default, double petWidth = 70.0, double petHeight = 70.0)
         {
-            // Nếu quá mệt mỏi, tự động đi ngủ
+            // Rule 7 & 17: Không ngắt quãng trạng thái One-Shot hoặc trạng thái ưu tiên cao
+            if (IsOneShotOrHighPriority(pet.State)) return;
+
+            // 1. Kiểm tra trạng thái suy giảm chỉ số / hành vi ưu tiên
             if (pet.IsSleepy)
             {
                 pet.State = PetState.Sleep;
                 AudioService.Instance.PlaySleep();
+                return;
+            }
+
+            if (pet.Cleanliness < 35)
+            {
+                // Dirty is directly controlled by Cleanliness < 35 (Rule 4)
+                pet.State = PetState.Dirty;
+                _stateTimer = _rand.Next(15, 30);
+                return;
+            }
+
+            if (pet.IsSick)
+            {
+                pet.State = PetState.Sick;
+                _stateTimer = _rand.Next(15, 30);
                 return;
             }
 
@@ -251,13 +288,32 @@ namespace DesktopPet.Services
             }
         }
 
+        public PetState GetDefaultNextState(Pet pet)
+        {
+            if (pet.Cleanliness < 35) return PetState.Dirty;
+            if (pet.IsSick) return PetState.Sick;
+            return PetState.Idle;
+        }
+
+        public static bool IsOneShotOrHighPriority(PetState state)
+        {
+            return state is PetState.Fall or PetState.Hurt or PetState.Bath or PetState.Eat
+                or PetState.Drink or PetState.WakeUp or PetState.Happy or PetState.Dance
+                or PetState.Play or PetState.Jump or PetState.Angry or PetState.Sleep;
+        }
+
         public void CompleteOneShotAnimation(Pet pet, PetState finishedState)
         {
             if (pet == null) return;
             if (pet.State == finishedState)
             {
                 var def = AnimationRegistry.GetDefinition(finishedState);
-                pet.State = def.CompletionState ?? PetState.Idle;
+                var nextState = def.CompletionState ?? PetState.Idle;
+                if (nextState == PetState.Idle)
+                {
+                    nextState = GetDefaultNextState(pet);
+                }
+                pet.State = nextState;
                 _stateTimer = _rand.Next(20, 35);
                 _targetX = pet.X;
             }
@@ -287,6 +343,12 @@ namespace DesktopPet.Services
                     _happyInitialDirection = pet.IsFacingLeft ? -1 : 1;
                     AudioService.Instance.PlayHappy();
                     break;
+                case PetState.Dance:
+                    AudioService.Instance.PlayHappy();
+                    break;
+                case PetState.Hurt:
+                    AudioService.Instance.PlayHurt();
+                    break;
                 case PetState.Sleep:
                     AudioService.Instance.PlaySleep();
                     break;
@@ -314,6 +376,16 @@ namespace DesktopPet.Services
         public void TriggerHappy(Pet pet)
         {
             TriggerState(pet, PetState.Happy);
+        }
+
+        public void TriggerDance(Pet pet)
+        {
+            TriggerState(pet, PetState.Dance);
+        }
+
+        public void TriggerHurt(Pet pet)
+        {
+            TriggerState(pet, PetState.Hurt);
         }
 
         public void TriggerSleep(Pet pet)

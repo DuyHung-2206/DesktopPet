@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Text.Json.Serialization;
 
 namespace DesktopPet.Models
@@ -34,12 +34,16 @@ namespace DesktopPet.Models
         [JsonPropertyName("requestedAtUtc")]
         public DateTime? RequestedAtUtc { get; set; }
 
+        [JsonPropertyName("expiredCounted")]
+        public bool ExpiredCounted { get; set; } = false;
+
         public PetNeedState() { }
 
         public PetNeedState(bool active, bool completed)
         {
             Active = active;
             Completed = completed;
+            ExpiredCounted = false;
             if (active)
             {
                 RequestedAtUtc = DateTime.UtcNow;

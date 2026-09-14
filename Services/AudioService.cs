@@ -108,6 +108,11 @@ namespace DesktopPet.Services
             });
         }
 
+        public void PlayHurt()
+        {
+            PlaySound("hurt", 220, 150);
+        }
+
         private void PlaySound(string soundName, int fallbackFreq, int fallbackDuration)
         {
             if (IsMuted) return;

@@ -173,6 +173,7 @@ namespace DesktopPet.Services
 
             // Nếu Coins < 0 (dữ liệu hỏng) thì mới chuẩn hóa về 0, bảo toàn số xu người chơi
             if (save.Coins < 0) save.Coins = 0;
+            if (save.FailedRequestCount < 0) save.FailedRequestCount = 0;
 
             if (save.Pets.Count == 0)
             {

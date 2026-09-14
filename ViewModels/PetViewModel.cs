@@ -28,6 +28,7 @@ namespace DesktopPet.ViewModels
         public Pet Pet => _pet;
         public PetSpecies? Species => _species;
         public GameSave GameSave => _save;
+        public PetAIService AIService => _aiService;
 
         public PetState State => _pet.State;
         public bool IsFacingLeft => _pet.IsFacingLeft;
@@ -191,6 +192,9 @@ namespace DesktopPet.ViewModels
             var oldFacing = _pet.IsFacingLeft;
             _aiService.UpdateAI(_pet, _species, dt, _save.Settings.SelectedMonitorIndex, petWidth, petHeight);
 
+            UpdateInactivity(dt);
+            CheckSickCondition();
+
             OnPropertyChanged(nameof(X));
             OnPropertyChanged(nameof(Y));
             if (_pet.State != oldState)
@@ -212,13 +216,18 @@ namespace DesktopPet.ViewModels
             {
                 if (state.Active && !state.Completed)
                 {
-                    // Hết hạn yêu cầu sau 45 giây nếu người chơi không đáp ứng
+                    // Hết hạn yêu cầu sau 45 giây nếu người chơi không đáp ứng (Rule 1)
                     if (state.RequestedAtUtc.HasValue)
                     {
                         var elapsed = (DateTime.UtcNow - state.RequestedAtUtc.Value).TotalSeconds;
                         if (elapsed > 45.0)
                         {
-                            state.Active = false;
+                            if (!state.ExpiredCounted)
+                            {
+                                state.ExpiredCounted = true;
+                                state.Active = false;
+                                RecordFailedRequest();
+                            }
                             return false;
                         }
                     }
@@ -248,6 +257,7 @@ namespace DesktopPet.ViewModels
 
             state.Active = true;
             state.Completed = false;
+            state.ExpiredCounted = false;
             state.RequestedAtUtc = DateTime.UtcNow;
 
             string prompt = customPrompt ?? GetDefaultNeedPrompt(needType);
@@ -277,6 +287,7 @@ namespace DesktopPet.ViewModels
             {
                 state.Active = false;
                 state.Completed = true;
+                state.ExpiredCounted = false;
                 awardedExp = expReward;
 
                 _statService.AddExp(_pet, awardedExp);
@@ -287,8 +298,44 @@ namespace DesktopPet.ViewModels
             return false;
         }
 
+        public void RecordFailedRequest()
+        {
+            _save.FailedRequestCount++;
+            LoggerService.Info($"Yêu cầu của thú cưng đã hết hạn. Tổng số lần bỏ lỡ: {_save.FailedRequestCount}/15");
+            if (_save.FailedRequestCount >= 15)
+            {
+                _save.FailedRequestCount = 0;
+                TriggerAngry();
+            }
+            SaveService.Instance.SaveGame(_save);
+        }
+
+        public void TriggerAngry()
+        {
+            if (_aiService.IsFalling || _pet.State == PetState.Hurt) return;
+            _aiService.TriggerState(_pet, PetState.Angry);
+            ShowEmote("Hứ! Sao gọi mãi mà Sen không thèm quan tâm gì hết á! 😾💢", 4.0);
+            OnPropertyChanged(nameof(State));
+            RequestPlayAnimation?.Invoke("Angry");
+        }
+
         public void CheckNeedsUpdate(double deltaSeconds)
         {
+            // 0. Kiểm tra các yêu cầu đã quá hạn mà người chơi không đáp ứng (Rule 1)
+            foreach (var state in _pet.Needs.Values)
+            {
+                if (state.Active && !state.Completed && state.RequestedAtUtc.HasValue)
+                {
+                    var elapsed = (DateTime.UtcNow - state.RequestedAtUtc.Value).TotalSeconds;
+                    if (elapsed > 45.0 && !state.ExpiredCounted)
+                    {
+                        state.ExpiredCounted = true;
+                        state.Active = false;
+                        RecordFailedRequest();
+                    }
+                }
+            }
+
             // 1. Kiểm tra theo ngưỡng chỉ số suy giảm
             if (_pet.Hunger < 35)
             {
@@ -376,6 +423,58 @@ namespace DesktopPet.ViewModels
             }
         }
 
+        private double _clickInactivityTimer = 0.0;
+        public const double InactivityThresholdSeconds = 60.0;
+        public double ClickInactivityTimer => _clickInactivityTimer;
+
+        public void ResetInactivityTimer()
+        {
+            _clickInactivityTimer = 0.0;
+        }
+
+        public void UpdateInactivity(double deltaSeconds)
+        {
+            _clickInactivityTimer += deltaSeconds;
+
+            if (_clickInactivityTimer >= InactivityThresholdSeconds)
+            {
+                // Chỉ kích hoạt Sad nếu pet đang ở trạng thái AI thông thường và không trong One-shot/Sleep (Rule 5 & 7)
+                if (!PetAIService.IsOneShotOrHighPriority(_pet.State) && _pet.Cleanliness >= 35 && !_pet.IsSleepy)
+                {
+                    if (_pet.State != PetState.Sad)
+                    {
+                        _pet.State = PetState.Sad;
+                        ShowEmote("Sen bỏ quên Mimi rồi sao... Buồn thiu luôn á... 😿💧", 4.0);
+                        OnPropertyChanged(nameof(State));
+                    }
+                }
+            }
+        }
+
+        private bool _sickThresholdTriggered = false;
+
+        public void CheckSickCondition()
+        {
+            // Rule 6: Khi TotalPlayCount >= 50, kích hoạt điều kiện Sick
+            if (_save.TotalPlayCount >= 50)
+            {
+                if (!_sickThresholdTriggered)
+                {
+                    _sickThresholdTriggered = true;
+                    if (!PetAIService.IsOneShotOrHighPriority(_pet.State) && _pet.State != PetState.Sleep)
+                    {
+                        _pet.State = PetState.Sick;
+                        ShowEmote("Oẹ... Mimi chơi nhiều mệt lả người rồi, bị ốm mất rồi... 🤒🤢", 4.0);
+                        OnPropertyChanged(nameof(State));
+                    }
+                }
+            }
+            else
+            {
+                _sickThresholdTriggered = false;
+            }
+        }
+
         private void OnStatTick(object? sender, EventArgs e)
         {
             _statService.UpdateStatsTick(_pet, _species, 1.0);
@@ -385,12 +484,28 @@ namespace DesktopPet.ViewModels
 
         public void OnPetClicked()
         {
+            // Reset timer không tương tác (Rule 5)
+            ResetInactivityTimer();
+
             AudioService.Instance.PlayClick();
             _pet.Affection = Math.Min(100.0, _pet.Affection + 1.0);
-            _aiService.TriggerHappy(_pet);
 
             CheckAchievementProgress("affection_50", (int)_pet.Affection);
             CheckAchievementProgress("affection_100", (int)_pet.Affection);
+
+            // 50% Happy, 50% Dance (Rule 2)
+            bool playHappy = _needRand.Next(2) == 0;
+            if (playHappy)
+            {
+                _aiService.TriggerHappy(_pet);
+                RequestPlayAnimation?.Invoke("Happy");
+            }
+            else
+            {
+                _aiService.TriggerDance(_pet);
+                RequestPlayAnimation?.Invoke("Dance");
+            }
+            OnPropertyChanged(nameof(State));
 
             // KIỂM TRA NHU CẦU VUỐT VE / TƯƠNG TÁC (Quy tắc 1, 2, 3, 10)
             if (CompleteNeed(PetNeedTypes.Affection, 10, out int expGain))
@@ -450,8 +565,13 @@ namespace DesktopPet.ViewModels
                 _save.TotalPlayCount++;
                 CheckAchievementProgress("first_play", 1);
                 CheckAchievementProgress("play_50_times", 1);
-                _aiService.TriggerHappy(_pet);
-                AudioService.Instance.PlayHappy();
+                CheckSickCondition();
+
+                if (_pet.State != PetState.Sick)
+                {
+                    _aiService.TriggerHappy(_pet);
+                    AudioService.Instance.PlayHappy();
+                }
 
                 // KIỂM TRA NHU CẦU CHƠI:
                 if (CompleteNeed(PetNeedTypes.Play, 20, out int expGain))
@@ -460,7 +580,10 @@ namespace DesktopPet.ViewModels
                 }
                 else
                 {
-                    ShowEmote($"Vui quá! {toyItem.Icon} Chơi đùa thích ghê!", 2.5);
+                    if (_pet.State != PetState.Sick)
+                    {
+                        ShowEmote($"Vui quá! {toyItem.Icon} Chơi đùa thích ghê!", 2.5);
+                    }
                 }
 
                 NotifyStatProperties();
@@ -517,6 +640,9 @@ namespace DesktopPet.ViewModels
         public void StartFalling()
         {
             _aiService.IsFalling = true;
+            _pet.State = PetState.Fall;
+            OnPropertyChanged(nameof(State));
+            RequestPlayAnimation?.Invoke("Fall");
         }
 
         public void ShowEmote(string text, double durationSeconds = 2.0)
@@ -570,8 +696,11 @@ namespace DesktopPet.ViewModels
         {
             if (_pet.State == PetState.Bath)
             {
+                _pet.Cleanliness = 100.0; // Rule 4: Cleanliness restored, Dirty cleared immediately!
                 _aiService.CompleteOneShotAnimation(_pet, PetState.Bath);
                 OnPropertyChanged(nameof(State));
+                NotifyStatProperties();
+                SaveService.Instance.SaveGame(_save);
             }
         }
 
@@ -713,8 +842,12 @@ namespace DesktopPet.ViewModels
                     _save.TotalPlayCount++;
                     CheckAchievementProgress("first_play", 1);
                     CheckAchievementProgress("play_50_times", 1);
-                    _aiService.TriggerHappy(_pet);
-                    AudioService.Instance.PlayHappy();
+                    CheckSickCondition();
+                    if (_pet.State != PetState.Sick)
+                    {
+                        _aiService.TriggerHappy(_pet);
+                        AudioService.Instance.PlayHappy();
+                    }
                     ShowEmote($"Vui ghê! {item.Icon}", 2.5);
                 }
                 else

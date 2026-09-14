@@ -45,6 +45,7 @@ namespace DesktopPet.Models
         public int TotalPlayCount { get; set; } = 0;
         public int TotalBathCount { get; set; } = 0;
         public int TotalMiniGameScore { get; set; } = 0;
+        public int FailedRequestCount { get; set; } = 0;
 
         // Cài đặt
         public GameSettings Settings { get; set; } = new();

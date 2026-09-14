@@ -57,7 +57,7 @@ namespace DesktopPet.Services
             [PetState.Jump] = new(PetState.Jump, "Jump.png", 5, 120, AnimationLoopMode.OneShot, StateDurationOwner.Animation, 1, PetState.Idle),
             [PetState.Angry] = new(PetState.Angry, "Angry.png", 4, 150, AnimationLoopMode.OneShot, StateDurationOwner.Animation, 3, PetState.Idle),
 
-            [PetState.Fall] = new(PetState.Fall, "Fall.png", 4, 100, AnimationLoopMode.Physics, StateDurationOwner.Physics, CompletionState: PetState.Idle)
+            [PetState.Fall] = new(PetState.Fall, "Fall.png", 4, 100, AnimationLoopMode.Physics, StateDurationOwner.Physics, CompletionState: PetState.Hurt)
         };
 
         public static AnimationDefinition GetDefinition(PetState state)
