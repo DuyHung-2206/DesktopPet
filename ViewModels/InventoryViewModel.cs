@@ -12,15 +12,12 @@ namespace DesktopPet.ViewModels
         public string ItemId { get; set; } = string.Empty;
         public string Name { get; set; } = string.Empty;
         public string Category { get; set; } = "Food";
-        public string? Slot { get; set; }
         public string Icon { get; set; } = "🍎";
         public string Description { get; set; } = string.Empty;
-        public int Quantity { get; set; } = 999;
-        public string QuantityDisplay => "∞";
-        public bool IsEquipped { get; set; }
-        public string ActionText => Category == "Accessory" ? (IsEquipped ? "Tháo Ra" : "Mặc") : "Sử Dụng";
-        public bool ShowEquippedBadge => Category == "Accessory" && IsEquipped;
-        public string ButtonBackground => Category == "Accessory" && IsEquipped ? "#E64A19" : "#7CB342";
+        public int Quantity { get; set; } = 1;
+        public string QuantityDisplay => $"x{Quantity}";
+        public string ActionText => "Sử Dụng";
+        public string ButtonBackground => "#7CB342";
     }
 
     public class InventoryViewModel : ViewModelBase
@@ -63,24 +60,25 @@ namespace DesktopPet.ViewModels
         {
             Items.Clear();
 
-            // Chế độ chill: Luôn hiển thị toàn bộ vật phẩm trong game với số lượng vô hạn (∞)
-            foreach (var def in DataManager.Instance.ItemsList)
+            // Hiển thị các vật phẩm thực tế có trong kho đồ người chơi
+            foreach (var invItem in _save.Inventory.ToList())
             {
+                if (invItem.Quantity <= 0) continue;
+
+                var def = DataManager.Instance.GetItem(invItem.ItemId);
+                if (def == null) continue;
+
                 if (_selectedCategory != "Tất Cả" && !MatchesCategory(def.Category, _selectedCategory))
                     continue;
-
-                var isEquipped = def.Category == "Accessory" && _petVM.IsItemEquipped(def.Id);
 
                 Items.Add(new InventoryItemDisplay
                 {
                     ItemId = def.Id,
                     Name = def.Name,
                     Category = def.Category,
-                    Slot = def.Slot,
                     Icon = def.Icon,
                     Description = def.Description,
-                    Quantity = 999,
-                    IsEquipped = isEquipped
+                    Quantity = invItem.Quantity
                 });
             }
         }
@@ -91,7 +89,6 @@ namespace DesktopPet.ViewModels
             {
                 "Thức Ăn" => itemCategory == "Food",
                 "Đồ Chơi" => itemCategory == "Toy",
-                "Trang Phục" => itemCategory == "Accessory",
                 _ => true
             };
         }
@@ -103,26 +100,22 @@ namespace DesktopPet.ViewModels
             var def = DataManager.Instance.GetItem(display.ItemId);
             if (def == null) return;
 
-            if (def.Category == "Accessory" && def.Slot != null)
+            var invItem = _save.Inventory.FirstOrDefault(i => i.ItemId == display.ItemId);
+
+            // Tiêu thụ thức ăn / đồ chơi: trừ 1 đơn vị
+            if (invItem != null && invItem.Quantity > 0)
             {
-                // Mặc / Tháo phụ kiện
-                if (_petVM.IsItemEquipped(def.Id))
+                invItem.Quantity--;
+                if (invItem.Quantity <= 0)
                 {
-                    _petVM.UnequipItem(def);
-                }
-                else
-                {
-                    _petVM.EquipItem(def);
+                    _save.Inventory.Remove(invItem);
                 }
             }
-            else
-            {
-                // Chế độ chill: Thức ăn / đồ chơi vô hạn, không trừ số lượng
-                _petVM.PetViewModel_ApplyItem(def);
-            }
+            _petVM.PetViewModel_ApplyItem(def);
 
             SaveService.Instance.SaveGame(_save);
             RefreshInventory();
+            _petVM.NotifyStatProperties();
         }
     }
 

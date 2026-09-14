@@ -27,10 +27,7 @@ namespace DesktopPet.Views
 
             PetRendererControl.OnAnimationCompleted = finishedState =>
             {
-                if (finishedState == PetState.Eat)
-                {
-                    Dispatcher.Invoke(() => _viewModel.FinishEatAnimation());
-                }
+                Dispatcher.Invoke(() => _viewModel.OnAnimationCompleted(finishedState));
             };
 
             _viewModel.RequestPlayAnimation += OnRequestPlayAnimation;
@@ -86,15 +83,7 @@ namespace DesktopPet.Views
             else if (e.PropertyName == nameof(PetViewModel.State) ||
                      e.PropertyName == nameof(PetViewModel.IsFacingLeft) ||
                      e.PropertyName == nameof(PetViewModel.BaseColor) ||
-                     e.PropertyName == nameof(PetViewModel.EquippedHeadIcon) ||
-                     e.PropertyName == nameof(PetViewModel.EquippedEyesIcon) ||
-                     e.PropertyName == nameof(PetViewModel.EquippedBackIcon) ||
-                     e.PropertyName == nameof(PetViewModel.EquippedHatIcon) ||
-                     e.PropertyName == nameof(PetViewModel.EquippedGlassesIcon) ||
-                     e.PropertyName == nameof(PetViewModel.EquippedBowIcon) ||
-                     e.PropertyName == nameof(PetViewModel.EquippedBackpackIcon) ||
-                     e.PropertyName == nameof(PetViewModel.PetScale) ||
-                     e.PropertyName == "EquippedItems")
+                     e.PropertyName == nameof(PetViewModel.PetScale))
             {
                 UpdatePosition();
                 UpdateRenderer();

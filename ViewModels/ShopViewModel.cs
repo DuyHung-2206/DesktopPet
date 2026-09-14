@@ -76,7 +76,6 @@ namespace DesktopPet.ViewModels
                 if (item.HungerRestore > 0) stats += $"🍖 +{item.HungerRestore} ";
                 if (item.HappinessBonus > 0) stats += $"😊 +{item.HappinessBonus} ";
                 if (item.EnergyBonus > 0) stats += $"⚡ +{item.EnergyBonus} ";
-                if (item.Slot != null) stats += $"[Trang bị {item.Slot}]";
 
                 DisplayItems.Add(new ShopItemDisplay
                 {
@@ -85,7 +84,7 @@ namespace DesktopPet.ViewModels
                     Category = item.Category,
                     Icon = item.Icon,
                     Description = item.Description,
-                    Price = 0,
+                    Price = item.Price,
                     StatsPreview = stats.Trim(),
                     IsPetUnlock = false
                 });
@@ -98,7 +97,6 @@ namespace DesktopPet.ViewModels
             {
                 "Thức Ăn" => itemCategory == "Food",
                 "Đồ Chơi" => itemCategory == "Toy",
-                "Trang Phục" => itemCategory == "Accessory",
                 _ => true
             };
         }
@@ -110,22 +108,27 @@ namespace DesktopPet.ViewModels
             var def = DataManager.Instance.GetItem(item.Id);
             if (def == null) return;
 
-            // Chế độ chill: Tự do dùng đồ / trang bị cho bé ngay lập tức hoàn toàn miễn phí
-            if (def.Category == "Accessory" && def.Slot != null)
+            if (_save.Coins < def.Price)
             {
-                if (_petVM.IsItemEquipped(def.Id))
-                {
-                    _petVM.UnequipItem(def);
-                }
-                else
-                {
-                    _petVM.EquipItem(def);
-                }
+                _petVM.ShowEmote($"Không đủ xu rồi! Cần {def.Price} xu. 🪙❌", 2.5);
+                AudioService.Instance.PlayError();
+                return;
+            }
+
+            // Trừ xu người chơi
+            _save.Coins -= def.Price;
+            AudioService.Instance.PlayCoin();
+
+            var existing = _save.Inventory.FirstOrDefault(i => i.ItemId == def.Id);
+            if (existing != null)
+            {
+                existing.Quantity++;
             }
             else
             {
-                _petVM.PetViewModel_ApplyItem(def);
+                _save.Inventory.Add(new InventoryItem { ItemId = def.Id, Quantity = 1 });
             }
+            _petVM.ShowEmote($"Đã mua {def.Name} (+1 vào kho đồ)! 🛍️", 2.5);
 
             SaveService.Instance.SaveGame(_save);
             RefreshCoins();

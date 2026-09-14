@@ -20,6 +20,10 @@ namespace DesktopPet.Services
         // Vật phẩm mục tiêu cần chạy đến (thức ăn / đồ chơi rơi trên desktop)
         public PointF? FoodTarget { get; set; }
 
+        public static double EatDurationSeconds => AnimationRegistry.GetAuthoritativeDurationSeconds(PetState.Eat);
+        public static double BathDurationSeconds => AnimationRegistry.GetAuthoritativeDurationSeconds(PetState.Bath);
+        public static double HappyDurationSeconds => AnimationRegistry.GetAuthoritativeDurationSeconds(PetState.Happy);
+
         public bool IsPaused { get; set; } = false;
 
         public void UpdateAI(Pet pet, PetSpecies? species, double deltaTime, int screenIndex, double petWidth, double petHeight)
@@ -72,9 +76,8 @@ namespace DesktopPet.Services
                 else
                 {
                     // Đã đến chỗ thức ăn!
-                    pet.State = PetState.Eat;
                     FoodTarget = null;
-                    _stateTimer = 3.0; // Ăn trong 3 giây
+                    TriggerEat(pet);
                     AudioService.Instance.PlayFeed();
                 }
 
@@ -101,7 +104,7 @@ namespace DesktopPet.Services
 
                     if (Math.Abs(dx) <= 5.0 || _stateTimer <= 0)
                     {
-                        // Đã đến điểm đích hoặc hết giờ đi -> Chuyển sang đứng yên (Idle) đủ lâu để hiện các hành động
+                        // Đã đến điểm đích hoặc hết giờ đi -> Chuyển sang đứng yên (Idle)
                         pet.State = PetState.Idle;
                         _stateTimer = _rand.Next(30, 45);
                     }
@@ -113,6 +116,9 @@ namespace DesktopPet.Services
                     break;
 
                 case PetState.Sit:
+                case PetState.Dirty:
+                case PetState.Sick:
+                case PetState.Sad:
                     if (_stateTimer <= 0)
                     {
                         pet.State = PetState.Idle;
@@ -125,13 +131,26 @@ namespace DesktopPet.Services
                     break;
 
                 case PetState.Eat:
-                case PetState.Play:
+                case PetState.Drink:
                 case PetState.Bath:
+                case PetState.WakeUp:
+                case PetState.Hurt:
+                case PetState.Play:
+                case PetState.Dance:
+                case PetState.Jump:
+                case PetState.Angry:
+                    // Hoạt ảnh OneShot do renderer làm chủ và phát sự kiện kết thúc.
+                    // _stateTimer ở đây đóng vai trò watchdog an toàn.
                     if (_stateTimer <= 0)
                     {
-                        pet.State = PetState.Idle;
-                        _stateTimer = _rand.Next(25, 40);
+                        var def = AnimationRegistry.GetDefinition(pet.State);
+                        pet.State = def.CompletionState ?? PetState.Idle;
+                        _stateTimer = _rand.Next(20, 35);
                     }
+                    break;
+
+                case PetState.Fall:
+                    // Do khối vật lý IsFalling phía trên điều khiển
                     break;
 
                 case PetState.Happy:
@@ -150,14 +169,11 @@ namespace DesktopPet.Services
                     int cycleIndex = (int)(_happyElapsed / cycleDuration);
                     double cycleTime = _happyElapsed - (cycleIndex * cycleDuration);
 
-                    // Đổi hướng nhảy qua nhảy lại giữa các chu kỳ (Chu kỳ 0, 2: nhảy sang một bên; Chu kỳ 1, 3: nhảy ngược lại)
+                    // Đổi hướng nhảy qua nhảy lại giữa các chu kỳ
                     int currentDir = (cycleIndex % 2 == 0) ? _happyInitialDirection : -_happyInitialDirection;
                     pet.IsFacingLeft = (currentDir < 0);
 
                     // Khoảng thời gian trên không (Airborne) trong mỗi chu kỳ 0.72s:
-                    // Frame 0 (0.00 -> 0.12s): Chuẩn bị bật nhảy (trên mặt đất)
-                    // Frame 1-3 (0.12 -> 0.50s): Đang bay trên không (nhảy vòng cung)
-                    // Frame 4-5 (0.50 -> 0.72s): Tiếp đất và chuẩn bị cho cú nhảy tiếp theo
                     if (cycleTime >= 0.12 && cycleTime <= 0.50)
                     {
                         double airProgress = (cycleTime - 0.12) / (0.50 - 0.12); // 0.0 -> 1.0
@@ -178,14 +194,6 @@ namespace DesktopPet.Services
                         pet.Y = groundY;
                         pet.State = PetState.Idle;
                         _stateTimer = _rand.Next(25, 40);
-                    }
-                    break;
-
-                case PetState.WakeUp:
-                    if (_stateTimer <= 0)
-                    {
-                        pet.State = PetState.Idle;
-                        _stateTimer = 20.0;
                     }
                     break;
 
@@ -237,38 +245,75 @@ namespace DesktopPet.Services
             }
             else
             {
-                // Đứng quan sát nhìn người dùng (Idle) đủ lâu để chu kỳ 10 giây diễn ra
+                // Đứng quan sát nhìn người dùng (Idle)
                 pet.State = PetState.Idle;
                 _stateTimer = _rand.Next(30, 45);
             }
         }
 
-        public void TriggerEat(Pet pet, double durationSeconds = 5.5)
+        public void CompleteOneShotAnimation(Pet pet, PetState finishedState)
         {
             if (pet == null) return;
-            pet.State = PetState.Eat;
-            _stateTimer = durationSeconds; // Fallback an toàn nếu không nhận được sự kiện kết thúc hoạt ảnh sau 5 giây
-            _targetX = pet.X; // Dừng ngay di chuyển
+            if (pet.State == finishedState)
+            {
+                var def = AnimationRegistry.GetDefinition(finishedState);
+                pet.State = def.CompletionState ?? PetState.Idle;
+                _stateTimer = _rand.Next(20, 35);
+                _targetX = pet.X;
+            }
+        }
+
+        public void TriggerState(Pet pet, PetState state, double customDuration = -1)
+        {
+            if (pet == null) return;
+            pet.State = state;
+            _targetX = pet.X;
+
+            var def = AnimationRegistry.GetDefinition(state);
+            double baseDuration = customDuration > 0 ? customDuration : def.TotalDurationSeconds;
+            // Watchdog dự phòng thêm 1.0 giây để luôn nhường quyền cho Renderer completion event
+            _stateTimer = baseDuration + 1.0;
+
+            switch (state)
+            {
+                case PetState.Eat:
+                    AudioService.Instance.PlayFeed();
+                    break;
+                case PetState.Bath:
+                    AudioService.Instance.PlayBath();
+                    break;
+                case PetState.Happy:
+                    _happyElapsed = 0.0;
+                    _happyInitialDirection = pet.IsFacingLeft ? -1 : 1;
+                    AudioService.Instance.PlayHappy();
+                    break;
+                case PetState.Sleep:
+                    AudioService.Instance.PlaySleep();
+                    break;
+                case PetState.WakeUp:
+                    AudioService.Instance.PlayWakeUp();
+                    break;
+            }
+        }
+
+        public void TriggerEat(Pet pet, double durationSeconds = -1)
+        {
+            TriggerState(pet, PetState.Eat, durationSeconds);
+        }
+
+        public void TriggerBath(Pet pet, double durationSeconds = -1)
+        {
+            TriggerState(pet, PetState.Bath, durationSeconds);
         }
 
         public void FinishEat(Pet pet)
         {
-            if (pet == null) return;
-            if (pet.State == PetState.Eat)
-            {
-                pet.State = PetState.Idle;
-                _stateTimer = _rand.Next(15, 30); // Giữ pet đứng Idle một khoảng thời gian sau khi ăn xong
-            }
+            CompleteOneShotAnimation(pet, PetState.Eat);
         }
 
         public void TriggerHappy(Pet pet)
         {
-            if (pet == null) return;
-            pet.State = PetState.Happy;
-            _stateTimer = 2.88; // Đúng 4 chu kỳ nhảy (mỗi chu kỳ 0.72s = 6 frames x 120ms)
-            _happyElapsed = 0.0;
-            _happyInitialDirection = pet.IsFacingLeft ? -1 : 1;
-            AudioService.Instance.PlayHappy();
+            TriggerState(pet, PetState.Happy);
         }
 
         public void TriggerSleep(Pet pet)
@@ -279,12 +324,7 @@ namespace DesktopPet.Services
 
         public void TriggerWakeUp(Pet pet)
         {
-            if (pet.State == PetState.Sleep)
-            {
-                pet.State = PetState.WakeUp;
-                _stateTimer = 1.5;
-                AudioService.Instance.PlayHappy();
-            }
+            TriggerState(pet, PetState.WakeUp);
         }
     }
 }

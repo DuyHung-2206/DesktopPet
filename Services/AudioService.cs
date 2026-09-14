@@ -66,6 +66,18 @@ namespace DesktopPet.Services
             });
         }
 
+        public void PlayWakeUp()
+        {
+            Task.Run(() =>
+            {
+                PlayProceduralBeep(440, 70); // A4
+                Task.Delay(50).Wait();
+                PlayProceduralBeep(554, 70); // C#5
+                Task.Delay(50).Wait();
+                PlayProceduralBeep(659, 120); // E5
+            });
+        }
+
         public void PlayCoin()
         {
             Task.Run(() =>

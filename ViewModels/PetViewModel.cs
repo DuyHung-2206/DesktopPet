@@ -74,84 +74,12 @@ namespace DesktopPet.ViewModels
             set => SetProperty(ref _isEmoteVisible, value);
         }
 
-        // Icon trang phục
-        public string? EquippedHatIcon
-        {
-            get
-            {
-                var itemId = _pet.GetEquippedItem(EquipmentSlots.Hat);
-                return itemId != null ? DataManager.Instance.GetItem(itemId)?.Icon : null;
-            }
-        }
-
-        public string? EquippedGlassesIcon
-        {
-            get
-            {
-                var itemId = _pet.GetEquippedItem(EquipmentSlots.Glasses);
-                return itemId != null ? DataManager.Instance.GetItem(itemId)?.Icon : null;
-            }
-        }
-
-        public string? EquippedBowIcon
-        {
-            get
-            {
-                var itemId = _pet.GetEquippedItem(EquipmentSlots.Bow);
-                return itemId != null ? DataManager.Instance.GetItem(itemId)?.Icon : null;
-            }
-        }
-
-        public string? EquippedBackpackIcon
-        {
-            get
-            {
-                var itemId = _pet.GetEquippedItem(EquipmentSlots.Backpack);
-                return itemId != null ? DataManager.Instance.GetItem(itemId)?.Icon : null;
-            }
-        }
-
-        // Backward compatibility properties
-        public string? EquippedHeadIcon => EquippedHatIcon;
-        public string? EquippedEyesIcon => EquippedGlassesIcon;
-        public string? EquippedBackIcon => EquippedBackpackIcon;
-
         public event Action? AppearanceChanged;
 
         public void NotifyAppearanceChanged()
         {
-            OnPropertyChanged(nameof(EquippedHeadIcon));
-            OnPropertyChanged(nameof(EquippedEyesIcon));
-            OnPropertyChanged(nameof(EquippedBackIcon));
-            OnPropertyChanged(nameof(EquippedHatIcon));
-            OnPropertyChanged(nameof(EquippedGlassesIcon));
-            OnPropertyChanged(nameof(EquippedBowIcon));
-            OnPropertyChanged(nameof(EquippedBackpackIcon));
-            OnPropertyChanged("EquippedItems");
             AppearanceChanged?.Invoke();
         }
-
-        public void EquipItem(Item item)
-        {
-            if (item == null || string.IsNullOrEmpty(item.Slot)) return;
-            _pet.EquipItem(item.Slot, item.Id);
-            AudioService.Instance.PlayLevelUp();
-            ShowEmote($"Đã diện {item.Icon} {item.Name}! ✨", 2.0);
-            SaveService.Instance.SaveGame(_save);
-            NotifyAppearanceChanged();
-        }
-
-        public void UnequipItem(Item item)
-        {
-            if (item == null) return;
-            _pet.UnequipItem(item.Id);
-            AudioService.Instance.PlayClick();
-            ShowEmote($"Đã tháo {item.Icon}!", 1.5);
-            SaveService.Instance.SaveGame(_save);
-            NotifyAppearanceChanged();
-        }
-
-        public bool IsItemEquipped(string itemId) => _pet.IsItemEquipped(itemId);
 
         // Commands
         public ICommand ClickPetCommand { get; }
@@ -546,8 +474,9 @@ namespace DesktopPet.ViewModels
             _save.TotalBathCount++;
             CheckAchievementProgress("first_bath", 1);
 
-            _pet.State = PetState.Bath;
-            AudioService.Instance.PlayBath();
+            _aiService.TriggerBath(_pet);
+            OnPropertyChanged(nameof(State));
+            RequestPlayAnimation?.Invoke("Bath");
 
             // KIỂM TRA NHU CẦU TẮM:
             if (CompleteNeed(PetNeedTypes.Bath, 15, out int expGain))
@@ -556,7 +485,7 @@ namespace DesktopPet.ViewModels
             }
             else
             {
-                ShowEmote("Tắm mát thơm tho! 🧼🫧", 2.5);
+                ShowEmote("Tắm mát thơm tho sạch sẽ! 🧼🫧✨", 2.5);
             }
 
             NotifyStatProperties();
@@ -609,23 +538,40 @@ namespace DesktopPet.ViewModels
 
         public void PlayAnimation(string animationName)
         {
-            if (string.Equals(animationName, "Eat", StringComparison.OrdinalIgnoreCase))
+            if (Enum.TryParse<PetState>(animationName, true, out var state))
             {
-                _aiService.TriggerEat(_pet, 5.5);
+                _aiService.TriggerState(_pet, state);
                 OnPropertyChanged(nameof(State));
                 RequestPlayAnimation?.Invoke(animationName);
             }
-            else if (string.Equals(animationName, "Happy", StringComparison.OrdinalIgnoreCase))
+        }
+
+        public void OnAnimationCompleted(PetState finishedState)
+        {
+            if (_pet.State == finishedState)
             {
-                _aiService.TriggerHappy(_pet);
-                OnPropertyChanged(nameof(State));
-                RequestPlayAnimation?.Invoke(animationName);
+                if (finishedState == PetState.Bath)
+                {
+                    FinishBathAnimation();
+                }
+                else if (finishedState == PetState.Eat)
+                {
+                    FinishEatAnimation();
+                }
+                else
+                {
+                    _aiService.CompleteOneShotAnimation(_pet, finishedState);
+                    OnPropertyChanged(nameof(State));
+                }
             }
-            else if (string.Equals(animationName, "Idle", StringComparison.OrdinalIgnoreCase))
+        }
+
+        public void FinishBathAnimation()
+        {
+            if (_pet.State == PetState.Bath)
             {
-                _pet.State = PetState.Idle;
+                _aiService.CompleteOneShotAnimation(_pet, PetState.Bath);
                 OnPropertyChanged(nameof(State));
-                RequestPlayAnimation?.Invoke(animationName);
             }
         }
 
@@ -640,14 +586,19 @@ namespace DesktopPet.ViewModels
 
         public void AddCoins(int amount)
         {
-            // Chế độ chill: Không dùng tính năng tiền tệ
-            _save.Coins = 0;
+            if (amount <= 0) return;
+            _save.Coins += amount;
             OnPropertyChanged(nameof(Coins));
+            SaveService.Instance.SaveGame(_save);
         }
 
         private void OnPetLevelUp(Pet pet, int bonusCoins)
         {
-            ShowEmote($"✨ LÊN CẤP {pet.Level}! Mimi vui vẻ hơn! ✨", 3.5);
+            if (bonusCoins > 0)
+            {
+                AddCoins(bonusCoins);
+            }
+            ShowEmote($"✨ LÊN CẤP {pet.Level}! Mimi vui vẻ hơn! {(bonusCoins > 0 ? $"+{bonusCoins} xu" : "")} ✨", 3.5);
             CheckAchievementProgress("reach_level_5", pet.Level);
             CheckAchievementProgress("reach_level_10", pet.Level);
             NotifyStatProperties();
@@ -674,7 +625,11 @@ namespace DesktopPet.ViewModels
                 ach.IsUnlocked = true;
                 _save.UnlockedAchievementIds.Add(achievementId);
                 AudioService.Instance.PlayLevelUp();
-                ShowEmote($"🏆 DANH HIỆU MỚI: {ach.Title}! ✨", 4.0);
+                if (ach.RewardCoins > 0)
+                {
+                    AddCoins(ach.RewardCoins);
+                }
+                ShowEmote($"🏆 DANH HIỆU MỚI: {ach.Title}! {(ach.RewardCoins > 0 ? $"(+{ach.RewardCoins} xu) " : "")}✨", 4.0);
                 SaveService.Instance.SaveGame(_save);
             }
         }
@@ -700,14 +655,6 @@ namespace DesktopPet.ViewModels
             OnPropertyChanged(nameof(BaseColor));
             OnPropertyChanged(nameof(SecondaryColor));
             OnPropertyChanged(nameof(Coins));
-            OnPropertyChanged(nameof(EquippedHeadIcon));
-            OnPropertyChanged(nameof(EquippedEyesIcon));
-            OnPropertyChanged(nameof(EquippedBackIcon));
-            OnPropertyChanged(nameof(EquippedHatIcon));
-            OnPropertyChanged(nameof(EquippedGlassesIcon));
-            OnPropertyChanged(nameof(EquippedBowIcon));
-            OnPropertyChanged(nameof(EquippedBackpackIcon));
-            OnPropertyChanged("EquippedItems");
             OnPropertyChanged(nameof(X));
             OnPropertyChanged(nameof(Y));
             OnPropertyChanged(nameof(State));

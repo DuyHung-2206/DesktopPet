@@ -140,17 +140,19 @@ namespace DesktopPet.Views
                 expReward = awardedExp;
             }
 
+            int coinsReward = Math.Max(10, _score * 2);
+            _petVM.AddCoins(coinsReward);
             _petVM.Pet.Happiness = Math.Min(100, _petVM.Pet.Happiness + 25);
             _petVM.Pet.Affection = Math.Min(100, _petVM.Pet.Affection + 5);
             _petVM.CheckAchievementProgress("minigame_master", _score);
 
             if (expReward > 0)
             {
-                RewardSummaryText.Text = $"Bắt bóng {_score} lần!\nĐáp ứng nhu cầu chơi: +{expReward} EXP & +💖 Thân thiết!";
+                RewardSummaryText.Text = $"Bắt bóng {_score} lần!\n+{coinsReward} Xu | +{expReward} EXP | +💖 Thân thiết!";
             }
             else
             {
-                RewardSummaryText.Text = $"Bắt bóng {_score} lần!\nBé Mimi rất vui: +💖 Thân thiết!";
+                RewardSummaryText.Text = $"Bắt bóng {_score} lần!\n+{coinsReward} Xu | Bé rất vui vẻ! 💖";
             }
 
             var vp = ViewportService.GetViewport(_petVM.GameSave.Settings.SelectedMonitorIndex);

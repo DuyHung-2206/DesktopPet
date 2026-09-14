@@ -60,29 +60,29 @@ namespace DesktopPet.ViewModels
 
             var streak = Math.Clamp(_save.DailyRewardStreak, 1, 7);
 
-            var rewardsConfig = new[]
+            var rewardsConfig = new (int Day, string Title, string Icon, int Coins, string? ItemId)[]
             {
-                (1, "+50 EXP", "⭐", 0, null),
-                (2, "Táo Đỏ", "🍎", 0, "apple"),
-                (3, "Bóng Tennis", "🎾", 0, "ball"),
-                (4, "Nơ Hồng", "🎀", 0, "ribbon_pink"),
-                (5, "+100 EXP", "⭐", 0, null),
-                (6, "Kính Mát", "🕶️", 0, "sunglasses_cool"),
-                (7, "Vương Miện", "👑", 0, "crown_gold")
+                (1, "50 Xu & EXP", "⭐", 50, null),
+                (2, "Táo Đỏ", "🍎", 30, "apple"),
+                (3, "Bóng Tennis", "🎾", 40, "ball"),
+                (4, "Cá Thu Tươi", "🐟", 60, "fish"),
+                (5, "100 Xu & EXP", "⭐", 100, null),
+                (6, "Hộp Ghép Hình", "🧩", 80, "puzzle"),
+                (7, "Đùi Gà Nướng", "🍗", 200, "chicken")
             };
 
             foreach (var r in rewardsConfig)
             {
-                var isClaimed = r.Item1 < streak || (r.Item1 == streak && !CanClaimDailyReward);
-                var isCurrent = r.Item1 == streak;
+                var isClaimed = r.Day < streak || (r.Day == streak && !CanClaimDailyReward);
+                var isCurrent = r.Day == streak;
 
                 DailyRewards.Add(new DailyReward
                 {
-                    DayNumber = r.Item1,
-                    Title = r.Item2,
-                    Icon = r.Item3,
-                    Coins = 0,
-                    ItemIdReward = r.Item5,
+                    DayNumber = r.Day,
+                    Title = r.Title,
+                    Icon = r.Icon,
+                    Coins = r.Coins,
+                    ItemIdReward = r.ItemId,
                     IsClaimed = isClaimed,
                     IsCurrentDay = isCurrent
                 });
@@ -108,12 +108,30 @@ namespace DesktopPet.ViewModels
                 _petVM.Pet.Affection = Math.Min(100.0, _petVM.Pet.Affection + 10.0);
                 _petVM.Pet.Happiness = Math.Min(100.0, _petVM.Pet.Happiness + 15.0);
 
+                if (currentReward.Coins > 0)
+                {
+                    _petVM.AddCoins(currentReward.Coins);
+                }
+
+                if (!string.IsNullOrEmpty(currentReward.ItemIdReward))
+                {
+                    var existing = _save.Inventory.FirstOrDefault(i => i.ItemId == currentReward.ItemIdReward);
+                    if (existing != null)
+                    {
+                        existing.Quantity++;
+                    }
+                    else
+                    {
+                        _save.Inventory.Add(new InventoryItem { ItemId = currentReward.ItemIdReward, Quantity = 1 });
+                    }
+                }
+
                 _save.LastDailyRewardUtc = DateTime.UtcNow;
                 if (_save.DailyRewardStreak >= 7) _save.DailyRewardStreak = 1;
                 else _save.DailyRewardStreak++;
 
                 AudioService.Instance.PlayLevelUp();
-                _petVM.ShowEmote($"🎁 Nhận quà Ngày {streak}: Mimi vui vẻ vô cùng! ✨", 3.0);
+                _petVM.ShowEmote($"🎁 Nhận quà Ngày {streak}: {currentReward.Title}! ✨", 3.0);
 
                 SaveService.Instance.SaveGame(_save);
                 _petVM.NotifyStatProperties();

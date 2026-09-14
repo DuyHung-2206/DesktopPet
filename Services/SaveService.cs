@@ -161,15 +161,18 @@ namespace DesktopPet.Services
         private void EnsureValidSave(GameSave save)
         {
             save.Pets ??= new List<Pet>();
-            save.UnlockedSpeciesIds = new List<string> { "cat" };
+            save.UnlockedSpeciesIds ??= new List<string>();
+            if (!save.UnlockedSpeciesIds.Contains("cat"))
+            {
+                save.UnlockedSpeciesIds.Add("cat");
+            }
             save.Inventory ??= new List<InventoryItem>();
             save.AchievementProgress ??= new Dictionary<string, int>();
             save.UnlockedAchievementIds ??= new List<string>();
             save.Settings ??= new GameSettings();
-            save.Coins = 0;
 
-            // Loại bỏ tất cả con vật khác, chỉ giữ lại mèo mini (cat)
-            save.Pets.RemoveAll(p => !string.Equals(p.SpeciesId, "cat", StringComparison.OrdinalIgnoreCase));
+            // Nếu Coins < 0 (dữ liệu hỏng) thì mới chuẩn hóa về 0, bảo toàn số xu người chơi
+            if (save.Coins < 0) save.Coins = 0;
 
             if (save.Pets.Count == 0)
             {
@@ -183,10 +186,6 @@ namespace DesktopPet.Services
             }
 
             var activePet = save.Pets.Find(p => p.Id == save.ActivePetId) ?? save.Pets[0];
-            if (activePet.Name == "TestMimi")
-            {
-                activePet.Name = "Mimi";
-            }
             var scale = save.Settings?.PetScale ?? 1.0;
             var petW = 70.0 * scale;
             var petH = 70.0 * scale;
@@ -205,19 +204,6 @@ namespace DesktopPet.Services
                 activePet.Y = clampedY;
             }
 
-            // Đảm bảo hệ thống trang bị (EquippedItems) được khởi tạo và chuẩn hóa slot
-            activePet.EquippedItems ??= new Dictionary<string, string>();
-            var normalizedEquipment = new Dictionary<string, string>();
-            foreach (var kvp in activePet.EquippedItems)
-            {
-                var normSlot = EquipmentSlots.NormalizeSlot(kvp.Key);
-                if (!string.IsNullOrEmpty(normSlot) && !string.IsNullOrEmpty(kvp.Value))
-                {
-                    normalizedEquipment[normSlot] = kvp.Value;
-                }
-            }
-            activePet.EquippedItems = normalizedEquipment;
-
             // Đảm bảo hệ thống nhu cầu (Needs) được khởi tạo đầy đủ
             activePet.Needs ??= new Dictionary<string, PetNeedState>();
             foreach (var needType in PetNeedTypes.All)
@@ -228,20 +214,8 @@ namespace DesktopPet.Services
                 }
             }
 
-
-            // Chế độ chill: Tự động nạp tất cả vật phẩm với số lượng vô hạn (999)
-            foreach (var item in DataManager.Instance.ItemsList)
-            {
-                var existing = save.Inventory.FirstOrDefault(i => i.ItemId == item.Id);
-                if (existing == null)
-                {
-                    save.Inventory.Add(new InventoryItem { ItemId = item.Id, Quantity = 999 });
-                }
-                else
-                {
-                    existing.Quantity = 999;
-                }
-            }
+            // Chuẩn hóa Inventory: loại bỏ các bản ghi không hợp lệ hoặc số lượng âm
+            save.Inventory.RemoveAll(i => string.IsNullOrEmpty(i.ItemId) || i.Quantity <= 0);
         }
     }
 }

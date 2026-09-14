@@ -14,7 +14,7 @@ Chào mừng bạn đến với **Desktop Pet World** – Trò chơi nuôi thú 
 7. [Cách Tạo Bộ Cài Đặt Windows (Installer Setup.exe)](#7-cách-tạo-bộ-cài-đặt-windows)
 8. [Vị Trí Save Game & Cơ Chế Offline Time](#8-vị-trí-save-game--cơ-chế-offline-time)
 9. [Hướng Dẫn Mở Rộng: Thêm Loài Pet Mới](#9-hướng-dẫn-mở-rộng-thêm-loài-pet-mới)
-10. [Hướng Dẫn Mở Rộng: Thêm Vật Phẩm Mới (Item/Food/Toy/Clothes)](#10-hướng-dẫn-mở-rộng-thêm-vật-phẩm-mới)
+10. [Hướng Dẫn Mở Rộng: Thêm Vật Phẩm Mới (Item/Food/Toy)](#10-hướng-dẫn-mở-rộng-thêm-vật-phẩm-mới)
 11. [Hướng Dẫn Mở Rộng: Thêm Hoạt Ảnh & Sprite PNG](#11-hướng-dẫn-mở-rộng-thêm-hoạt-ảnh--sprite-png)
 12. [Xử Lý Sự Cố Thường Gặp (Troubleshooting)](#12-xử-lý-sự-cố-thường-gặp)
 
@@ -50,7 +50,6 @@ DesktopPet/
 │   │   ├── Panda/
 │   │   └── Dragon/
 │   ├── Food/                      # Hình ảnh thức ăn
-│   ├── Clothes/                   # Hình ảnh trang phục
 │   ├── Toys/                      # Hình ảnh đồ chơi
 │   ├── Audio/                     # Hiệu ứng âm thanh .WAV
 │   └── Icons/                     # Icon ứng dụng (app.ico)
@@ -59,7 +58,7 @@ DesktopPet/
 │   ├── Pet.cs                     # Model thú cưng (Stats, Level, Exp, Vị trí...)
 │   ├── PetSpecies.cs              # Định nghĩa loài thú cưng (Data-driven)
 │   ├── PetState.cs                # Enum trạng thái: Idle, Walk, Sleep, Fall...
-│   ├── Item.cs                    # Định nghĩa vật phẩm (Food, Toy, Accessory)
+│   ├── Item.cs                    # Định nghĩa vật phẩm (Food, Toy)
 │   ├── InventoryItem.cs           # Vật phẩm trong túi & số lượng
 │   ├── GameSave.cs                # Cấu trúc lưu trữ tiến trình game
 │   ├── Achievement.cs             # Thành tựu & danh hiệu
@@ -69,7 +68,7 @@ DesktopPet/
 │   ├── ViewModelBase.cs           # INotifyPropertyChanged & RelayCommand
 │   ├── PetViewModel.cs            # Điều phối hành vi, chỉ số, vòng lặp AI
 │   ├── ShopViewModel.cs           # Mua sắm vật phẩm & mở khóa pet
-│   ├── InventoryViewModel.cs      # Quản lý túi đồ, mặc trang phục
+│   ├── InventoryViewModel.cs      # Quản lý túi đồ & sử dụng vật phẩm
 │   ├── PetCollectionViewModel.cs  # Quản lý bộ sưu tập & chọn pet
 │   ├── SettingsViewModel.cs       # Cài đặt âm thanh, tỉ lệ, màn hình
 │   └── MainDashboardViewModel.cs  # Bảng điều khiển trung tâm & điểm danh
@@ -77,7 +76,7 @@ DesktopPet/
 ├── Views/                         # Giao diện XAML WPF
 │   ├── PetWindow.xaml             # Cửa sổ chính trong suốt nổi trên Desktop
 │   ├── Controls/
-│   │   ├── PetRenderer.xaml       # Bộ render vector procedural & sprite fallback
+│   │   ├── PetRenderer.xaml       # Bộ render vector procedural & sprite animation
 │   │   ├── EmoteBubble.xaml       # Bóng thoại cảm xúc trôi bồng bềnh
 │   │   └── PetStatusPopup.xaml    # Bảng hiển thị mini chỉ số khi click pet
 │   ├── ShopWindow.xaml            # Cửa sổ Shop mua sắm
@@ -101,7 +100,7 @@ DesktopPet/
 │
 ├── Data/                          # Dữ liệu JSON cấu hình (Data-Driven)
 │   ├── pets.json                  # Thông số các loài thú cưng
-│   ├── items.json                 # Danh sách thức ăn, đồ chơi, trang phục
+│   ├── items.json                 # Danh sách thức ăn & đồ chơi
 │   └── achievements.json          # Danh sách thành tựu & phần thưởng
 │
 ├── App.xaml / App.xaml.cs         # Khởi động, Single-Instance, Exception Handler
@@ -244,7 +243,7 @@ Khởi động lại game, loài mới sẽ tự động xuất hiện trong **B
 
 ---
 
-## 10. Hướng Dẫn Mở Rộng: Thêm Vật Phẩm Mới
+## 10. Hướng Dẫn Mở Rộng: Thêm Vật Phẩm Mới (Item/Food/Toy)
 
 Mở file `Data/items.json` và thêm vật phẩm tùy ý:
 
@@ -264,19 +263,18 @@ Mở file `Data/items.json` và thêm vật phẩm tùy ý:
 }
 ```
 
-### Ví dụ thêm Trang phục mới:
+### Ví dụ thêm Đồ chơi mới (Toy):
 ```json
 {
-  "id": "party_hat",
-  "name": "Mũ sinh nhật chóp nhọn",
-  "category": "Accessory",
-  "slot": "Head",
-  "icon": "🎉",
-  "description": "Chiếc mũ tiệc tùng lấp lánh.",
-  "price": 95,
+  "id": "laser_pointer",
+  "name": "Đèn chiếu laser đỏ",
+  "category": "Toy",
+  "icon": "🔴",
+  "description": "Món đồ chơi cuốn hút khiến bé mèo đuổi theo không ngừng nghỉ.",
+  "price": 60,
   "hungerRestore": 0,
-  "happinessBonus": 40,
-  "energyBonus": 0,
+  "happinessBonus": 45,
+  "energyBonus": -10,
   "cleanlinessImpact": 0
 }
 ```
