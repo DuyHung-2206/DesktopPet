@@ -84,7 +84,7 @@ namespace DesktopPet.ViewModels
                     Category = item.Category,
                     Icon = item.Icon,
                     Description = item.Description,
-                    Price = item.Price,
+                    Price = 0,
                     StatsPreview = stats.Trim(),
                     IsPetUnlock = false
                 });
@@ -108,27 +108,8 @@ namespace DesktopPet.ViewModels
             var def = DataManager.Instance.GetItem(item.Id);
             if (def == null) return;
 
-            if (_save.Coins < def.Price)
-            {
-                _petVM.ShowEmote($"Không đủ xu rồi! Cần {def.Price} xu. 🪙❌", 2.5);
-                AudioService.Instance.PlayError();
-                return;
-            }
-
-            // Trừ xu người chơi
-            _save.Coins -= def.Price;
-            AudioService.Instance.PlayCoin();
-
-            var existing = _save.Inventory.FirstOrDefault(i => i.ItemId == def.Id);
-            if (existing != null)
-            {
-                existing.Quantity++;
-            }
-            else
-            {
-                _save.Inventory.Add(new InventoryItem { ItemId = def.Id, Quantity = 1 });
-            }
-            _petVM.ShowEmote($"Đã mua {def.Name} (+1 vào kho đồ)! 🛍️", 2.5);
+            // Chế độ chill: Tự do dùng đồ / ăn uống cho bé ngay lập tức hoàn toàn miễn phí
+            _petVM.PetViewModel_ApplyItem(def);
 
             SaveService.Instance.SaveGame(_save);
             RefreshCoins();

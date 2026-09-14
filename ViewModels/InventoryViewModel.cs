@@ -14,8 +14,8 @@ namespace DesktopPet.ViewModels
         public string Category { get; set; } = "Food";
         public string Icon { get; set; } = "🍎";
         public string Description { get; set; } = string.Empty;
-        public int Quantity { get; set; } = 1;
-        public string QuantityDisplay => $"x{Quantity}";
+        public int Quantity { get; set; } = 999;
+        public string QuantityDisplay => "∞";
         public string ActionText => "Sử Dụng";
         public string ButtonBackground => "#7CB342";
     }
@@ -60,14 +60,9 @@ namespace DesktopPet.ViewModels
         {
             Items.Clear();
 
-            // Hiển thị các vật phẩm thực tế có trong kho đồ người chơi
-            foreach (var invItem in _save.Inventory.ToList())
+            // Chế độ chill: Luôn hiển thị toàn bộ thức ăn và đồ chơi trong game với số lượng vô hạn (∞)
+            foreach (var def in DataManager.Instance.ItemsList)
             {
-                if (invItem.Quantity <= 0) continue;
-
-                var def = DataManager.Instance.GetItem(invItem.ItemId);
-                if (def == null) continue;
-
                 if (_selectedCategory != "Tất Cả" && !MatchesCategory(def.Category, _selectedCategory))
                     continue;
 
@@ -78,7 +73,7 @@ namespace DesktopPet.ViewModels
                     Category = def.Category,
                     Icon = def.Icon,
                     Description = def.Description,
-                    Quantity = invItem.Quantity
+                    Quantity = 999
                 });
             }
         }
@@ -100,17 +95,7 @@ namespace DesktopPet.ViewModels
             var def = DataManager.Instance.GetItem(display.ItemId);
             if (def == null) return;
 
-            var invItem = _save.Inventory.FirstOrDefault(i => i.ItemId == display.ItemId);
-
-            // Tiêu thụ thức ăn / đồ chơi: trừ 1 đơn vị
-            if (invItem != null && invItem.Quantity > 0)
-            {
-                invItem.Quantity--;
-                if (invItem.Quantity <= 0)
-                {
-                    _save.Inventory.Remove(invItem);
-                }
-            }
+            // Chế độ chill: Thức ăn / đồ chơi vô hạn, dùng trực tiếp cho bé
             _petVM.PetViewModel_ApplyItem(def);
 
             SaveService.Instance.SaveGame(_save);
