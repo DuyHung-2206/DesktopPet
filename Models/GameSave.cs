@@ -29,7 +29,7 @@ namespace DesktopPet.Models
         public List<Pet> Pets { get; set; } = new();
         public List<string> UnlockedSpeciesIds { get; set; } = new() { "cat" };
 
-        // Kho đồ & Trang bị
+        // Kho đồ (Túi đồ)
         public List<InventoryItem> Inventory { get; set; } = new();
 
         // Tiến trình & Danh hiệu

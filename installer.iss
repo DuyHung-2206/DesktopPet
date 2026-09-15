@@ -2,7 +2,7 @@
 #define MyAppName "Desktop Pet World"
 #define MyAppVersion "1.0.0"
 #define MyAppPublisher "Desktop Pet Team"
-#define MyAppURL "https://github.com/DuyHung-2206/haha"
+#define MyAppURL "https://github.com/DuyHung-2206/DesktopPet"
 #define MyAppExeName "DesktopPet.exe"
 
 [Setup]
