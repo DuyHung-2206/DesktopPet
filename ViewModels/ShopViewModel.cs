@@ -18,6 +18,7 @@ namespace DesktopPet.ViewModels
         public string StatsPreview { get; set; } = string.Empty;
         public bool IsPetUnlock { get; set; } = false;
         public bool IsAlreadyUnlocked { get; set; } = false;
+        public string BuyButtonText => $"🛒 Mua ({Price} Xu)";
     }
 
     public class ShopViewModel : ViewModelBase
@@ -66,13 +67,14 @@ namespace DesktopPet.ViewModels
         {
             DisplayItems.Clear();
 
-            // Thêm các vật phẩm từ items.json (Tất cả đều miễn phí vô hạn)
+            // Nạp các vật phẩm từ items.json với giá bán chuẩn
             foreach (var item in DataManager.Instance.ItemsList)
             {
                 if (_selectedCategory != "Tất Cả" && !MatchesCategory(item.Category, _selectedCategory))
                     continue;
 
                 var stats = "";
+                if (item.Category == "Medicine") stats += "💊 Trị Ốm ";
                 if (item.HungerRestore > 0) stats += $"🍖 +{item.HungerRestore} ";
                 if (item.HappinessBonus > 0) stats += $"😊 +{item.HappinessBonus} ";
                 if (item.EnergyBonus > 0) stats += $"⚡ +{item.EnergyBonus} ";
@@ -84,7 +86,7 @@ namespace DesktopPet.ViewModels
                     Category = item.Category,
                     Icon = item.Icon,
                     Description = item.Description,
-                    Price = 0,
+                    Price = item.Price,
                     StatsPreview = stats.Trim(),
                     IsPetUnlock = false
                 });
@@ -97,6 +99,7 @@ namespace DesktopPet.ViewModels
             {
                 "Thức Ăn" => itemCategory == "Food",
                 "Đồ Chơi" => itemCategory == "Toy",
+                "Thuốc" => itemCategory == "Medicine",
                 _ => true
             };
         }
@@ -108,11 +111,33 @@ namespace DesktopPet.ViewModels
             var def = DataManager.Instance.GetItem(item.Id);
             if (def == null) return;
 
-            // Chế độ chill: Tự do dùng đồ / ăn uống cho bé ngay lập tức hoàn toàn miễn phí
-            _petVM.PetViewModel_ApplyItem(def);
+            if (_save.Coins < item.Price)
+            {
+                _petVM.ShowEmote($"❌ Bạn cần {item.Price} Xu để mua món này! (Hiện có: {_save.Coins} Xu)", 2.5);
+                AudioService.Instance.PlayHurt();
+                return;
+            }
+
+            // Trừ xu người chơi
+            _save.Coins -= item.Price;
+
+            // Thêm vật phẩm vào túi đồ (không giới hạn tối đa 50)
+            var existing = _save.Inventory.FirstOrDefault(i => i.ItemId == item.Id);
+            if (existing != null)
+            {
+                existing.Quantity++;
+            }
+            else
+            {
+                _save.Inventory.Add(new InventoryItem { ItemId = item.Id, Quantity = 1 });
+            }
+
+            AudioService.Instance.PlayCoin();
+            _petVM.ShowEmote($"🛒 Đã mua 1 {item.Name}! (-{item.Price} Xu) ✨", 2.5);
 
             SaveService.Instance.SaveGame(_save);
             RefreshCoins();
+            _petVM.TriggerInventoryChanged();
             _petVM.NotifyStatProperties();
         }
     }

@@ -91,10 +91,15 @@ namespace DesktopPet
                 ShowWindow(_inventoryWindow);
             };
 
-            _petVM.RequestOpenDashboard += () =>
+            _petVM.RequestOpenCollection += () =>
             {
                 colVM.RefreshCollection();
                 ShowWindow(_collectionWindow);
+            };
+
+            _petVM.RequestOpenDashboard += () =>
+            {
+                ShowWindow(_dashboardWindow);
             };
 
             _petVM.RequestOpenSettings += () =>

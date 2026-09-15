@@ -7,8 +7,8 @@
     "description": "Quả táo tươi mát, bổ sung năng lượng và vitamin cho thú cưng.",
     "price": 10,
     "hungerRestore": 15,
-    "happinessBonus": 5,
-    "energyBonus": 5,
+    "happinessBonus": 3,
+    "energyBonus": 2,
     "cleanlinessImpact": 0
   },
   {
@@ -19,8 +19,8 @@
     "description": "Món khoái khẩu của thỏ Bunny! Tăng rất nhiều năng lượng và thị lực.",
     "price": 15,
     "hungerRestore": 20,
-    "happinessBonus": 10,
-    "energyBonus": 5,
+    "happinessBonus": 5,
+    "energyBonus": 2,
     "cleanlinessImpact": 0
   },
   {
@@ -31,9 +31,9 @@
     "description": "Món ăn yêu thích nhất của mèo Mimi! Giúp lông mượt và tăng niềm vui vượt trội.",
     "price": 25,
     "hungerRestore": 35,
-    "happinessBonus": 25,
-    "energyBonus": 10,
-    "cleanlinessImpact": -5
+    "happinessBonus": 10,
+    "energyBonus": 4,
+    "cleanlinessImpact": -2
   },
   {
     "id": "chicken",
@@ -43,9 +43,9 @@
     "description": "Thơm phức, giòn rụm! Cung cấp lượng đạm dồi dào.",
     "price": 30,
     "hungerRestore": 40,
-    "happinessBonus": 20,
-    "energyBonus": 15,
-    "cleanlinessImpact": -5
+    "happinessBonus": 8,
+    "energyBonus": 5,
+    "cleanlinessImpact": -2
   },
   {
     "id": "steak",
@@ -55,9 +55,9 @@
     "description": "Món ăn xa xỉ làm no căng bụng và giúp thú cưng tràn đầy sinh lực.",
     "price": 50,
     "hungerRestore": 60,
-    "happinessBonus": 30,
-    "energyBonus": 25,
-    "cleanlinessImpact": -10
+    "happinessBonus": 12,
+    "energyBonus": 8,
+    "cleanlinessImpact": -4
   },
   {
     "id": "cake",
@@ -67,9 +67,9 @@
     "description": "Ngọt ngào béo ngậy! Đem lại chỉ số hạnh phúc cực kỳ cao.",
     "price": 40,
     "hungerRestore": 25,
-    "happinessBonus": 45,
-    "energyBonus": 10,
-    "cleanlinessImpact": -5
+    "happinessBonus": 15,
+    "energyBonus": 4,
+    "cleanlinessImpact": -2
   },
   {
     "id": "cookie",
@@ -79,8 +79,8 @@
     "description": "Món ăn vặt giòn tan mỗi khi đi dạo.",
     "price": 12,
     "hungerRestore": 15,
-    "happinessBonus": 15,
-    "energyBonus": 5,
+    "happinessBonus": 6,
+    "energyBonus": 2,
     "cleanlinessImpact": 0
   },
   {
@@ -91,8 +91,8 @@
     "description": "Dễ tiêu hóa, bổ sung canxi và giúp pet ngủ ngon hơn.",
     "price": 18,
     "hungerRestore": 20,
-    "happinessBonus": 15,
-    "energyBonus": 15,
+    "happinessBonus": 6,
+    "energyBonus": 6,
     "cleanlinessImpact": 0
   },
 
@@ -104,9 +104,9 @@
     "description": "Quả bóng cao su nảy tưng bừng! Cún Bobby thích nhất món này.",
     "price": 40,
     "hungerRestore": -5,
-    "happinessBonus": 30,
-    "energyBonus": -15,
-    "cleanlinessImpact": -5
+    "happinessBonus": 15,
+    "energyBonus": -8,
+    "cleanlinessImpact": -2
   },
   {
     "id": "tennis",
@@ -116,9 +116,9 @@
     "description": "Nảy nhanh và kích thích phản xạ săn đuổi.",
     "price": 30,
     "hungerRestore": -5,
-    "happinessBonus": 25,
-    "energyBonus": -10,
-    "cleanlinessImpact": -5
+    "happinessBonus": 12,
+    "energyBonus": -5,
+    "cleanlinessImpact": -2
   },
   {
     "id": "feather",
@@ -128,8 +128,8 @@
     "description": "Vờn qua vờn lại khiến mèo Mimi nhảy nhót không ngừng.",
     "price": 35,
     "hungerRestore": -5,
-    "happinessBonus": 35,
-    "energyBonus": -12,
+    "happinessBonus": 16,
+    "energyBonus": -6,
     "cleanlinessImpact": 0
   },
   {
@@ -140,8 +140,8 @@
     "description": "Người bạn đồng hành dễ thương, ôm khi ngủ giúp hồi năng lượng nhanh.",
     "price": 60,
     "hungerRestore": 0,
-    "happinessBonus": 30,
-    "energyBonus": 10,
+    "happinessBonus": 14,
+    "energyBonus": 5,
     "cleanlinessImpact": 0
   },
   {
@@ -152,8 +152,8 @@
     "description": "Đồ chơi kỹ năng xoay tít, khiến pet tò mò theo dõi.",
     "price": 45,
     "hungerRestore": -5,
-    "happinessBonus": 28,
-    "energyBonus": -10,
+    "happinessBonus": 14,
+    "energyBonus": -5,
     "cleanlinessImpact": 0
   },
   {
@@ -164,8 +164,20 @@
     "description": "Rèn luyện trí thông minh cho thỏ Bunny và các thú cưng tò mò.",
     "price": 55,
     "hungerRestore": 0,
-    "happinessBonus": 40,
-    "energyBonus": -8,
+    "happinessBonus": 18,
+    "energyBonus": -4,
+    "cleanlinessImpact": 0
+  },
+  {
+    "id": "medicine",
+    "name": "Thuốc Trị Bệnh Thần Kỳ",
+    "category": "Medicine",
+    "icon": "💊",
+    "description": "Thuốc đặc trị giúp thú cưng khỏi ốm ngay lập tức và bắt đầu quá trình hồi phục sức khỏe.",
+    "price": 50,
+    "hungerRestore": 0,
+    "happinessBonus": 5,
+    "energyBonus": 10,
     "cleanlinessImpact": 0
   }
 ]

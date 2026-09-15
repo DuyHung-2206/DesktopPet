@@ -233,6 +233,14 @@ namespace DesktopPet.Services
             // Rule 7 & 17: Không ngắt quãng trạng thái One-Shot hoặc trạng thái ưu tiên cao
             if (IsOneShotOrHighPriority(pet.State)) return;
 
+            // Rule 8: Nếu pet đang ốm -> Khóa toàn bộ hành vi bình thường, chỉ duy trì trạng thái Sick
+            if (pet.IsSick)
+            {
+                pet.State = PetState.Sick;
+                _stateTimer = 30.0;
+                return;
+            }
+
             // 1. Kiểm tra trạng thái suy giảm chỉ số / hành vi ưu tiên
             if (pet.IsSleepy)
             {
@@ -245,13 +253,6 @@ namespace DesktopPet.Services
             {
                 // Dirty is directly controlled by Cleanliness < 35 (Rule 4)
                 pet.State = PetState.Dirty;
-                _stateTimer = _rand.Next(15, 30);
-                return;
-            }
-
-            if (pet.IsSick)
-            {
-                pet.State = PetState.Sick;
                 _stateTimer = _rand.Next(15, 30);
                 return;
             }
@@ -290,8 +291,8 @@ namespace DesktopPet.Services
 
         public PetState GetDefaultNextState(Pet pet)
         {
-            if (pet.Cleanliness < 35) return PetState.Dirty;
             if (pet.IsSick) return PetState.Sick;
+            if (pet.Cleanliness < 35) return PetState.Dirty;
             return PetState.Idle;
         }
 

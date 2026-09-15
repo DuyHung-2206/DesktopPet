@@ -22,7 +22,7 @@ namespace DesktopPet.Models
         public DateTime LastPlayedUtc { get; set; } = DateTime.UtcNow;
 
         // Kinh tế
-        public int Coins { get; set; } = 150;
+        public int Coins { get; set; } = 1000;
 
         // Thú cưng
         public string ActivePetId { get; set; } = string.Empty;
@@ -40,11 +40,18 @@ namespace DesktopPet.Models
         public int DailyRewardStreak { get; set; } = 1;
         public DateTime? LastDailyRewardUtc { get; set; }
 
+        // Nhiệm vụ ngắn (Quests)
+        public Dictionary<string, int> QuestProgress { get; set; } = new();
+        public List<string> ClaimedQuestIds { get; set; } = new();
+
         // Thống kê tổng
         public int TotalFeedCount { get; set; } = 0;
         public int TotalPlayCount { get; set; } = 0;
         public int TotalBathCount { get; set; } = 0;
         public int FailedRequestCount { get; set; } = 0;
+
+        // Quản lý đợt ốm (Sick Episode)
+        public bool HasTriggered50PlaySick { get; set; } = false;
 
         // Cài đặt
         public GameSettings Settings { get; set; } = new();

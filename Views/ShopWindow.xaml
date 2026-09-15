@@ -4,7 +4,7 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         mc:Ignorable="d"
-        Title="Cửa Hàng Thú Cưng"
+        Title="Cửa hàng"
         Width="680" Height="520"
         WindowStartupLocation="CenterScreen"
         WindowStyle="None"
@@ -24,16 +24,16 @@
             <!-- TIÊU ĐỀ + CHILL BADGE + NÚT ĐÓNG -->
             <Grid Grid.Row="0" Margin="0,0,0,15">
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                    <TextBlock Text="🍳" FontSize="26" Margin="0,0,8,0" />
-                    <TextBlock Text="BẾP ĂN &amp; CỬA HÀNG CHO BÉ" FontSize="20" FontWeight="Bold" Foreground="#E65100" VerticalAlignment="Center" />
+                    <TextBlock Text="🛒" FontSize="26" Margin="0,0,8,0" />
+                    <TextBlock Text="CỬA HÀNG" FontSize="20" FontWeight="Bold" Foreground="#E65100" VerticalAlignment="Center" />
                 </StackPanel>
 
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
-                    <!-- Huy hiệu Chill Mode -->
-                    <Border Background="#E8F5E9" BorderBrush="#81C784" BorderThickness="1.5" CornerRadius="14" Padding="12,5" Margin="0,0,12,0">
+                    <!-- Số dư Xu của người chơi -->
+                    <Border Background="#FFF8E1" BorderBrush="#FFD54F" BorderThickness="1.5" CornerRadius="14" Padding="12,5" Margin="0,0,12,0">
                         <StackPanel Orientation="Horizontal">
-                            <TextBlock Text="🌿" FontSize="15" Margin="0,0,5,0" />
-                            <TextBlock Text="Chill Mode: Miễn Phí Vô Hạn ∞" FontWeight="Bold" FontSize="13" Foreground="#2E7D32" />
+                            <TextBlock Text="💰" FontSize="15" Margin="0,0,5,0" />
+                            <TextBlock Text="{Binding Coins, StringFormat='{}{0} Xu'}" FontWeight="Bold" FontSize="13" Foreground="#E65100" />
                         </StackPanel>
                     </Border>
 
@@ -56,7 +56,9 @@
                 <Button Content="🍖 Thức Ăn" Command="{Binding SelectCategoryCommand}" CommandParameter="Thức Ăn"
                         Margin="0,0,8,0" Padding="14,6" Background="#FFF3E0" FontWeight="SemiBold" Cursor="Hand" />
                 <Button Content="🎾 Đồ Chơi" Command="{Binding SelectCategoryCommand}" CommandParameter="Đồ Chơi"
-                        Padding="14,6" Background="#E8F5E9" FontWeight="SemiBold" Cursor="Hand" />
+                        Margin="0,0,8,0" Padding="14,6" Background="#E8F5E9" FontWeight="SemiBold" Cursor="Hand" />
+                <Button Content="💊 Thuốc" Command="{Binding SelectCategoryCommand}" CommandParameter="Thuốc"
+                        Padding="14,6" Background="#E1F5FE" FontWeight="SemiBold" Cursor="Hand" />
             </StackPanel>
 
             <!-- DANH SÁCH VẬT PHẨM (ITEMS LIST) -->
@@ -102,7 +104,7 @@
                                                 <Setter Property="CornerRadius" Value="12" />
                                             </Style>
                                         </Button.Resources>
-                                        <TextBlock Text="✨ Cho Bé Dùng (∞)" FontWeight="Bold" Foreground="White" FontSize="12" HorizontalAlignment="Center" />
+                                        <TextBlock Text="{Binding BuyButtonText}" FontWeight="Bold" Foreground="White" FontSize="12" HorizontalAlignment="Center" />
                                     </Button>
                                 </Grid>
                             </Border>

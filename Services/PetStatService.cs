@@ -48,7 +48,7 @@ namespace DesktopPet.Services
             {
                 pet.Health = Math.Max(20.0, pet.Health - (factor * 10.0));
             }
-            else if (pet.Hunger > 60 && pet.Cleanliness > 60 && pet.Health < 100.0)
+            else if (!pet.IsSick && pet.Hunger > 60 && pet.Cleanliness > 60 && pet.Health < 100.0)
             {
                 pet.Health = Math.Min(100.0, pet.Health + (factor * 5.0));
             }

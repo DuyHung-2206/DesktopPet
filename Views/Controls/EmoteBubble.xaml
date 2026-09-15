@@ -18,6 +18,10 @@
         </Grid.RenderTransform>
 
         <StackPanel HorizontalAlignment="Center">
+            <!-- Mũi nhọn hướng lên (khi bubble nằm DƯỚI pet) -->
+            <Polygon x:Name="TopPointer" Points="6,0 0,8 12,8" Fill="#FFFFFFFF" Stroke="#FF80AB" StrokeThickness="1"
+                     HorizontalAlignment="Center" Margin="0,0,0,-1" Visibility="Collapsed" />
+
             <!-- Khung bong bóng chat -->
             <Border Background="#FFFFFFFF" BorderBrush="#FF80AB" BorderThickness="1.8"
                     CornerRadius="14" Padding="12,6" MaxWidth="260"
@@ -27,8 +31,8 @@
                            TextWrapping="Wrap" LineHeight="16" SnapsToDevicePixels="True" />
             </Border>
 
-            <!-- Mũi nhọn hướng xuống thú cưng -->
-            <Polygon Points="0,0 12,0 6,8" Fill="#FFFFFFFF" Stroke="#FF80AB" StrokeThickness="1"
+            <!-- Mũi nhọn hướng xuống thú cưng (khi bubble nằm TRÊN pet) -->
+            <Polygon x:Name="BottomPointer" Points="0,0 12,0 6,8" Fill="#FFFFFFFF" Stroke="#FF80AB" StrokeThickness="1"
                      HorizontalAlignment="Center" Margin="0,-1,0,0" />
         </StackPanel>
     </Grid>

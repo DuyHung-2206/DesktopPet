@@ -118,7 +118,7 @@ namespace DesktopPet.Services
             }
         }
 
-        private GameSave CreateDefaultSave()
+        public GameSave CreateDefaultSave()
         {
             var defaultPos = ViewportService.GetDefaultSpawnPosition(70.0, 70.0);
             var defaultPet = new Pet
@@ -142,7 +142,7 @@ namespace DesktopPet.Services
             return new GameSave
             {
                 Version = 1,
-                Coins = 100,
+                Coins = 1000,
                 ActivePetId = defaultPet.Id,
                 Pets = new List<Pet> { defaultPet },
                 UnlockedSpeciesIds = new List<string> { "cat" },
@@ -169,6 +169,8 @@ namespace DesktopPet.Services
             save.Inventory ??= new List<InventoryItem>();
             save.AchievementProgress ??= new Dictionary<string, int>();
             save.UnlockedAchievementIds ??= new List<string>();
+            save.QuestProgress ??= new Dictionary<string, int>();
+            save.ClaimedQuestIds ??= new List<string>();
             save.Settings ??= new GameSettings();
 
             // Nếu Coins < 0 (dữ liệu hỏng) thì mới chuẩn hóa về 0, bảo toàn số xu người chơi

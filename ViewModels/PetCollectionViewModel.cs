@@ -18,7 +18,12 @@ namespace DesktopPet.ViewModels
         public int UnlockPrice { get; set; }
         public bool IsUnlocked { get; set; }
         public bool IsActive { get; set; }
-        public string CustomName { get; set; } = string.Empty;
+        private string _customName = string.Empty;
+        public string CustomName
+        {
+            get => _customName;
+            set => SetProperty(ref _customName, value);
+        }
         public int Level { get; set; } = 1;
         public string ActionText => IsActive ? "Đang Nuôi 🐾" : (IsUnlocked ? "Chọn Thú Cưng" : $"Mở Khóa ({UnlockPrice}🪙)");
     }
@@ -32,7 +37,40 @@ namespace DesktopPet.ViewModels
 
         public int Coins => _save.Coins;
 
+        private bool _isRenameDialogOpen;
+        public bool IsRenameDialogOpen
+        {
+            get => _isRenameDialogOpen;
+            set => SetProperty(ref _isRenameDialogOpen, value);
+        }
+
+        private string _newPetName = string.Empty;
+        public string NewPetName
+        {
+            get => _newPetName;
+            set => SetProperty(ref _newPetName, value);
+        }
+
+        private string _renameErrorMessage = string.Empty;
+        public string RenameErrorMessage
+        {
+            get => _renameErrorMessage;
+            set
+            {
+                if (SetProperty(ref _renameErrorMessage, value))
+                {
+                    OnPropertyChanged(nameof(HasRenameError));
+                }
+            }
+        }
+        public bool HasRenameError => !string.IsNullOrEmpty(_renameErrorMessage);
+
+        public PetCollectionItemDisplay? RenameTargetItem { get; private set; }
+
         public ICommand SelectOrUnlockCommand { get; }
+        public ICommand OpenRenameDialogCommand { get; }
+        public ICommand ConfirmRenameCommand { get; }
+        public ICommand CancelRenameCommand { get; }
 
         public PetCollectionViewModel(PetViewModel petVM)
         {
@@ -40,6 +78,9 @@ namespace DesktopPet.ViewModels
             _save = petVM.GameSave;
 
             SelectOrUnlockCommand = new RelayCommand<PetCollectionItemDisplay>(OnSelectOrUnlock);
+            OpenRenameDialogCommand = new RelayCommand<PetCollectionItemDisplay>(OnOpenRenameDialog);
+            ConfirmRenameCommand = new RelayCommand(OnConfirmRename);
+            CancelRenameCommand = new RelayCommand(OnCancelRename);
 
             RefreshCollection();
         }
@@ -136,6 +177,94 @@ namespace DesktopPet.ViewModels
                 SaveService.Instance.SaveGame(_save);
                 RefreshCollection();
             }
+        }
+
+        public void OnOpenRenameDialog(PetCollectionItemDisplay? item)
+        {
+            if (item == null || !item.IsUnlocked) return;
+
+            RenameTargetItem = item;
+            NewPetName = item.CustomName;
+            RenameErrorMessage = string.Empty;
+            IsRenameDialogOpen = true;
+        }
+
+        public void OnCancelRename()
+        {
+            IsRenameDialogOpen = false;
+            NewPetName = string.Empty;
+            RenameErrorMessage = string.Empty;
+            RenameTargetItem = null;
+        }
+
+        public void OnConfirmRename()
+        {
+            if (RenameTargetItem == null)
+            {
+                IsRenameDialogOpen = false;
+                return;
+            }
+
+            if (!RenamePet(RenameTargetItem.SpeciesId, NewPetName, out string errorMessage))
+            {
+                RenameErrorMessage = errorMessage;
+                return;
+            }
+
+            AudioService.Instance.PlayClick();
+            IsRenameDialogOpen = false;
+            NewPetName = string.Empty;
+            RenameErrorMessage = string.Empty;
+            RenameTargetItem = null;
+        }
+
+        public bool RenamePet(string speciesId, string newName, out string errorMessage)
+        {
+            var trimmed = newName?.Trim() ?? string.Empty;
+            if (string.IsNullOrWhiteSpace(trimmed))
+            {
+                errorMessage = "Tên thú cưng không được để trống.";
+                return false;
+            }
+
+            if (trimmed.Length > 30)
+            {
+                errorMessage = "Tên thú cưng không được vượt quá 30 ký tự.";
+                return false;
+            }
+
+            // Tìm thú cưng trong danh sách save
+            var existingPet = _save.Pets.FirstOrDefault(p => p.SpeciesId == speciesId);
+            if (existingPet == null)
+            {
+                existingPet = new Pet
+                {
+                    Id = Guid.NewGuid().ToString(),
+                    Name = trimmed,
+                    SpeciesId = speciesId,
+                    X = _petVM.X,
+                    Y = _petVM.Y
+                };
+                _save.Pets.Add(existingPet);
+            }
+            else
+            {
+                existingPet.Name = trimmed;
+            }
+
+            // Nếu thú cưng được đổi tên là pet đang nuôi (Active Pet)
+            if (existingPet.Id == _save.ActivePetId)
+            {
+                _petVM.Pet.Name = trimmed;
+                _petVM.NotifyAllProperties();
+                _petVM.ShowEmote($"Tên mới của bé là {trimmed}! ✨🐾", 2.5);
+            }
+
+            SaveService.Instance.SaveGame(_save);
+            RefreshCollection();
+
+            errorMessage = string.Empty;
+            return true;
         }
     }
 }

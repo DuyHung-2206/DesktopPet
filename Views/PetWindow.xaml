@@ -12,8 +12,8 @@
         Topmost="True"
         ShowInTaskbar="False"
         ResizeMode="NoResize"
-        Width="360"
-        Height="360">
+        Width="520"
+        Height="460">
 
     <Window.Resources>
         <DropShadowEffect x:Key="ShadowEffect" BlurRadius="12" ShadowDepth="3" Opacity="0.25" Color="#37474F" />
@@ -28,7 +28,7 @@
             <MenuItem Header="😴 Ngủ / Thức Dậy" Click="OnMenuSleepClick" />
             <Separator />
             <MenuItem Header="🎒 Mở Túi Đồ" Click="OnMenuInventoryClick" />
-            <MenuItem Header="🏪 Tủ Đồ &amp; Bếp Ăn" Click="OnMenuShopClick" />
+            <MenuItem Header="🛒 Cửa hàng" Click="OnMenuShopClick" />
             <MenuItem Header="🐾 Bộ Sưu Tập Pet" Click="OnMenuCollectionClick" />
             <Separator />
             <MenuItem Header="📊 Bảng Quản Lý Menu" Click="OnMenuDashboardClick" />
@@ -38,22 +38,22 @@
         </ContextMenu>
     </Window.Resources>
 
-    <Canvas x:Name="MainCanvas" Width="360" Height="360" Background="{x:Null}">
+    <Canvas x:Name="MainCanvas" Width="520" Height="460" Background="{x:Null}">
 
         <!-- POPUP MINI CHỈ SỐ KHI BẬT -->
         <controls:PetStatusPopup x:Name="StatusPopupControl"
-                                 Canvas.Left="92.5" Canvas.Top="15"
+                                 Canvas.Left="172.5" Canvas.Top="90"
                                  Visibility="{Binding IsStatusPopupOpen, Converter={StaticResource BooleanToVisibilityConverter}, FallbackValue=Collapsed}" />
 
-        <!-- BÓNG THOẠI CẢM XÚC (EMOTE BUBBLE CĂN GIỮA TRÊN ĐẦU PET, KHÔNG BAO GIỜ BỊ MẤT CHỮ) -->
+        <!-- BÓNG THOẠI CẢM XÚC (EMOTE BUBBLE CĂN CHỈNH TỰ ĐỘNG ĐA CHIỀU TRÁNH ĐÈ LÊN UI KHÁC) -->
         <controls:EmoteBubble x:Name="EmoteBubbleControl"
                               Text="{Binding EmoteText}"
-                              Canvas.Left="50" Canvas.Top="85" Width="260"
+                              MaxWidth="260"
                               Visibility="{Binding IsEmoteVisible, Converter={StaticResource BooleanToVisibilityConverter}, FallbackValue=Collapsed}" />
 
-        <!-- THÚ CƯNG CHÍNH (PET RENDERER: 70x70) CĂN GIỮA TỌA ĐỘ (145, 160) -->
+        <!-- THÚ CƯNG CHÍNH (PET RENDERER: 70x70 CĂN THEO PetScale) -->
         <controls:PetRenderer x:Name="PetRendererControl"
-                              Canvas.Left="145" Canvas.Top="160"
+                              Canvas.Left="225" Canvas.Top="240"
                               ContextMenu="{StaticResource PetContextMenu}"
                               MouseLeftButtonDown="OnPetMouseLeftButtonDown"
                               MouseLeftButtonUp="OnPetMouseLeftButtonUp"

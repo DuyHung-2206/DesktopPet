@@ -55,7 +55,7 @@ namespace DesktopPet.Services
 
                 var contextMenu = new ContextMenuStrip();
                 contextMenu.Items.Add("🐾 Hiện / Trọng Tâm Pet", null, (s, e) => _petVM.OnPetClicked());
-                contextMenu.Items.Add("🏪 Cửa Hàng", null, (s, e) => _openShopAction());
+                contextMenu.Items.Add("🛒 Cửa hàng", null, (s, e) => _openShopAction());
                 contextMenu.Items.Add("🎒 Túi Đồ", null, (s, e) => _openInventoryAction());
                 contextMenu.Items.Add("⚙️ Cài Đặt", null, (s, e) => _openSettingsAction());
                 contextMenu.Items.Add(new ToolStripSeparator());

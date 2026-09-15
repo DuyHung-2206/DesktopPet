@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         mc:Ignorable="d"
         Title="Bộ Sưu Tập Thú Cưng"
-        Width="720" Height="500"
+        Width="740" Height="540"
         WindowStartupLocation="CenterScreen"
         WindowStyle="None"
         AllowsTransparency="True"
@@ -57,7 +57,7 @@
                     </ItemsControl.ItemsPanel>
                     <ItemsControl.ItemTemplate>
                         <DataTemplate>
-                            <Border Width="210" Height="200" Background="White" BorderBrush="#CE93D8" BorderThickness="1.5"
+                            <Border Width="216" Height="225" Background="White" BorderBrush="#CE93D8" BorderThickness="1.5"
                                     CornerRadius="18" Margin="6" Padding="12" Effect="{DynamicResource CardShadow}">
                                 <Grid>
                                     <Grid.RowDefinitions>
@@ -66,33 +66,109 @@
                                         <RowDefinition Height="Auto" />
                                     </Grid.RowDefinitions>
 
-                                    <!-- Tên loài + Trạng thái hoạt động -->
+                                    <!-- Tên loài + Tên tùy chỉnh + Cấp độ -->
                                     <StackPanel Grid.Row="0" HorizontalAlignment="Center">
-                                        <TextBlock Text="{Binding DisplayName}" FontWeight="Bold" FontSize="15" Foreground="#6A1B9A" HorizontalAlignment="Center" />
-                                        <TextBlock Text="{Binding Level, StringFormat='Cấp độ: {0}'}" FontSize="11" Foreground="#7B1FA2" HorizontalAlignment="Center" />
+                                        <TextBlock Text="{Binding DisplayName}" FontWeight="Bold" FontSize="14" Foreground="#6A1B9A" HorizontalAlignment="Center" />
+                                        <TextBlock Text="{Binding CustomName, StringFormat='Tên: {0}'}" FontSize="12" FontWeight="SemiBold" Foreground="#37474F" HorizontalAlignment="Center" Margin="0,2,0,0"
+                                                   Visibility="{Binding IsUnlocked, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                                        <TextBlock Text="{Binding Level, StringFormat='Cấp độ: {0}'}" FontSize="11" Foreground="#7B1FA2" HorizontalAlignment="Center" Margin="0,1,0,0" />
                                     </StackPanel>
 
                                     <!-- Mô tả & Đặc điểm -->
                                     <TextBlock Grid.Row="1" Text="{Binding Description}" FontSize="11" Foreground="#546E7A"
-                                               TextAlignment="Center" TextWrapping="Wrap" VerticalAlignment="Center" Margin="0,5" />
+                                               TextAlignment="Center" TextWrapping="Wrap" VerticalAlignment="Center" Margin="0,4"
+                                               MaxHeight="36" TextTrimming="CharacterEllipsis" />
 
-                                    <!-- Nút Chọn / Mở khóa -->
-                                    <Button Grid.Row="2" Command="{Binding DataContext.SelectOrUnlockCommand, RelativeSource={RelativeSource AncestorType=Window}}"
-                                            CommandParameter="{Binding}"
-                                            Height="34" Background="#8E24AA" BorderThickness="0" Cursor="Hand">
-                                        <Button.Resources>
-                                            <Style TargetType="Border">
-                                                <Setter Property="CornerRadius" Value="12" />
-                                            </Style>
-                                        </Button.Resources>
-                                        <TextBlock Text="{Binding ActionText}" FontWeight="Bold" Foreground="White" FontSize="12" />
-                                    </Button>
+                                    <!-- Nút Hành động -->
+                                    <StackPanel Grid.Row="2">
+                                        <!-- Nút Đổi tên: chỉ hiện khi thú cưng đã mở khóa -->
+                                        <Button Command="{Binding DataContext.OpenRenameDialogCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                CommandParameter="{Binding}"
+                                                Visibility="{Binding IsUnlocked, Converter={StaticResource BooleanToVisibilityConverter}}"
+                                                Height="26" Background="#EDE7F6" BorderBrush="#BA68C8" BorderThickness="1"
+                                                Cursor="Hand" Margin="0,0,0,5">
+                                            <Button.Resources>
+                                                <Style TargetType="Border">
+                                                    <Setter Property="CornerRadius" Value="10" />
+                                                </Style>
+                                            </Button.Resources>
+                                            <TextBlock Text="✏️ Đổi tên" FontWeight="SemiBold" Foreground="#6A1B9A" FontSize="11" />
+                                        </Button>
+
+                                        <!-- Nút Chọn / Mở khóa -->
+                                        <Button Command="{Binding DataContext.SelectOrUnlockCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                CommandParameter="{Binding}"
+                                                Height="30" Background="#8E24AA" BorderThickness="0" Cursor="Hand">
+                                            <Button.Resources>
+                                                <Style TargetType="Border">
+                                                    <Setter Property="CornerRadius" Value="10" />
+                                                </Style>
+                                            </Button.Resources>
+                                            <TextBlock Text="{Binding ActionText}" FontWeight="Bold" Foreground="White" FontSize="11" />
+                                        </Button>
+                                    </StackPanel>
                                 </Grid>
                             </Border>
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
             </ScrollViewer>
+
+            <!-- HỘP THOẠI ĐỔI TÊN THÚ CƯNG (MODAL OVERLAY) -->
+            <Grid Grid.Row="0" Grid.RowSpan="2"
+                  Visibility="{Binding IsRenameDialogOpen, Converter={StaticResource BooleanToVisibilityConverter}}"
+                  Background="#80000000">
+                <Border Width="330" Background="White" BorderBrush="#AB47BC" BorderThickness="2.5"
+                        CornerRadius="20" Padding="22,18" HorizontalAlignment="Center" VerticalAlignment="Center"
+                        Effect="{DynamicResource WindowShadow}">
+                    <StackPanel>
+                        <TextBlock Text="Đổi tên thú cưng" FontWeight="Bold" FontSize="16" Foreground="#4A148C"
+                                   HorizontalAlignment="Center" Margin="0,0,0,12" />
+
+                        <TextBlock Text="Tên mới:" FontSize="13" FontWeight="SemiBold" Foreground="#37474F" Margin="0,0,0,6" />
+
+                        <TextBox Text="{Binding NewPetName, UpdateSourceTrigger=PropertyChanged}"
+                                 MaxLength="30" FontSize="14" Padding="8,6" Margin="0,0,0,4"
+                                 BorderBrush="#BA68C8" BorderThickness="1.5">
+                            <TextBox.Resources>
+                                <Style TargetType="Border">
+                                    <Setter Property="CornerRadius" Value="8" />
+                                </Style>
+                            </TextBox.Resources>
+                        </TextBox>
+
+                        <!-- Thông báo lỗi khi nhập sai -->
+                        <TextBlock Text="{Binding RenameErrorMessage}" Foreground="#D32F2F" FontSize="11" FontWeight="SemiBold"
+                                   Margin="2,2,0,8"
+                                   Visibility="{Binding HasRenameError, Converter={StaticResource BooleanToVisibilityConverter}}" />
+
+                        <!-- Nút Hủy và Lưu -->
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,8,0,0">
+                            <Button Content="Hủy" Command="{Binding CancelRenameCommand}"
+                                    Width="75" Height="32" Margin="0,0,10,0"
+                                    Background="#F5F5F5" BorderBrush="#BDBDBD" BorderThickness="1"
+                                    Foreground="#616161" FontWeight="SemiBold" Cursor="Hand">
+                                <Button.Resources>
+                                    <Style TargetType="Border">
+                                        <Setter Property="CornerRadius" Value="10" />
+                                    </Style>
+                                </Button.Resources>
+                            </Button>
+
+                            <Button Content="Lưu" Command="{Binding ConfirmRenameCommand}"
+                                    Width="75" Height="32"
+                                    Background="#8E24AA" BorderThickness="0"
+                                    Foreground="White" FontWeight="Bold" Cursor="Hand">
+                                <Button.Resources>
+                                    <Style TargetType="Border">
+                                        <Setter Property="CornerRadius" Value="10" />
+                                    </Style>
+                                </Button.Resources>
+                            </Button>
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+            </Grid>
         </Grid>
     </Border>
 </Window>

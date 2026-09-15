@@ -51,6 +51,7 @@ namespace DesktopPet.Models
         public bool IsSleepy => Energy < 25;
         public bool IsDirty => Cleanliness < 35;
         public bool IsSad => Happiness < 30;
-        public bool IsSick => Health < 35;
+        public bool IsSick { get; set; } = false;
+        public bool SickPenaltyApplied { get; set; } = false;
     }
 }

@@ -30,5 +30,18 @@ namespace DesktopPet.Views.Controls
             var floatAnim = TryFindResource("FloatAnimation") as Storyboard;
             floatAnim?.Begin();
         }
+
+        public void SetPointerPosition(BubblePointerPosition pos)
+        {
+            TopPointer.Visibility = pos == BubblePointerPosition.Up ? Visibility.Visible : Visibility.Collapsed;
+            BottomPointer.Visibility = pos == BubblePointerPosition.Down ? Visibility.Visible : Visibility.Collapsed;
+        }
+    }
+
+    public enum BubblePointerPosition
+    {
+        Down,
+        Up,
+        None
     }
 }
