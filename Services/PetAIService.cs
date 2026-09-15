@@ -9,13 +9,33 @@ namespace DesktopPet.Services
         private readonly Random _rand = new();
         private double _stateTimer = 0.0;
         private double _targetX = 0.0;
+        private double _targetY = 0.0;
         private double _happyElapsed = 0.0;
+        private double _happyBaseY = 0.0;
         private int _happyInitialDirection = 1; // 1: nhảy sang phải, -1: nhảy sang trái
+
+        // Ngưỡng vận tốc thả kéo nhanh để kích hoạt rơi (DIP/giây)
+        public static double FastDragReleaseThreshold { get; set; } = 650.0;
+
+        public static double CalculateDragVelocity(double displacementDip, double elapsedSeconds)
+        {
+            if (elapsedSeconds <= 0.001) return 0.0;
+            return displacementDip / elapsedSeconds;
+        }
+
+        public static bool IsFastDragRelease(double velocityDipPerSec) => velocityDipPerSec >= FastDragReleaseThreshold;
 
         // Trạng thái rơi tự do (Physics)
         public bool IsFalling { get; set; } = false;
         private double _verticalVelocity = 0.0;
         private const double Gravity = 900.0; // px/s^2
+
+        public void StartFalling(Pet pet)
+        {
+            IsFalling = true;
+            _verticalVelocity = 0.0;
+            pet.State = PetState.Fall;
+        }
 
         // Vật phẩm mục tiêu cần chạy đến (thức ăn / đồ chơi rơi trên desktop)
         public PointF? FoodTarget { get; set; }
@@ -50,12 +70,6 @@ namespace DesktopPet.Services
 
                 (pet.X, pet.Y) = ViewportService.ClampPosition(pet.X, pet.Y, petWidth, petHeight, screenIndex);
                 return;
-            }
-
-            // Đảm bảo pet không lơ lửng nếu không rơi (trừ khi đang nhảy Jump, Fall hoặc Happy)
-            if (pet.Y < groundY && pet.State != PetState.Jump && pet.State != PetState.Fall && pet.State != PetState.Happy)
-            {
-                pet.Y = groundY;
             }
 
             // 2. NẾU CÓ THỨC ĂN HOẶC ĐỒ CHƠI ĐANG RƠI TRÊN MÀN HÌNH -> CHẠY ĐẾN ĐÓ
@@ -99,8 +113,10 @@ namespace DesktopPet.Services
                 case PetState.Run:
                     var moveSpeed = (species?.Speed ?? 2.0) * (pet.State == PetState.Run ? 100.0 : 60.0) * deltaTime;
                     var dx = _targetX - pet.X;
+                    var dy = _targetY - pet.Y;
+                    var dist = Math.Sqrt(dx * dx + dy * dy);
 
-                    if (Math.Abs(dx) <= 5.0 || _stateTimer <= 0)
+                    if (dist <= 5.0 || _stateTimer <= 0)
                     {
                         // Đã đến điểm đích hoặc hết giờ đi -> Chuyển sang đứng yên (Idle)
                         pet.State = PetState.Idle;
@@ -108,8 +124,13 @@ namespace DesktopPet.Services
                     }
                     else
                     {
-                        pet.IsFacingLeft = dx < 0;
-                        pet.X += Math.Sign(dx) * Math.Min(moveSpeed, Math.Abs(dx));
+                        if (Math.Abs(dx) > 1.0)
+                        {
+                            pet.IsFacingLeft = dx < 0;
+                        }
+                        var step = Math.Min(moveSpeed, dist);
+                        pet.X += (dx / dist) * step;
+                        pet.Y += (dy / dist) * step;
                     }
                     break;
 
@@ -199,18 +220,18 @@ namespace DesktopPet.Services
                         double jumpSpeed = Math.Sin(airProgress * Math.PI) * 170.0; // Vận tốc ngang hình sin
                         pet.X += currentDir * jumpSpeed * deltaTime;
 
-                        // Độ cao nhảy vòng cung lên khỏi mặt đất (12 DIP)
+                        // Độ cao nhảy vòng cung lên khỏi vị trí đặt (12 DIP)
                         double jumpArc = Math.Sin(airProgress * Math.PI) * 12.0;
-                        pet.Y = groundY - jumpArc;
+                        pet.Y = _happyBaseY - jumpArc;
                     }
                     else
                     {
-                        pet.Y = groundY;
+                        pet.Y = _happyBaseY;
                     }
 
                     if (_stateTimer <= 0)
                     {
-                        pet.Y = groundY;
+                        pet.Y = _happyBaseY;
                         pet.State = PetState.Idle;
                         _stateTimer = _rand.Next(25, 40);
                     }
@@ -241,6 +262,11 @@ namespace DesktopPet.Services
                 return;
             }
 
+            if (workArea.Width <= 0 || workArea.Height <= 0)
+            {
+                workArea = ViewportService.GetWorkingArea(0);
+            }
+
             // 1. Kiểm tra trạng thái suy giảm chỉ số / hành vi ưu tiên
             if (pet.IsSleepy)
             {
@@ -262,12 +288,18 @@ namespace DesktopPet.Services
 
             if (roll < 45)
             {
-                // Đi dạo (Walk)
+                // Đi dạo tự do trên desktop (Walk - 2D Desktop Roaming)
                 pet.State = PetState.Walk;
                 var minX = workArea.Left + ViewportService.SafeMargin;
                 var maxX = workArea.Right - petWidth - ViewportService.SafeMargin;
                 if (maxX < minX) maxX = minX;
                 _targetX = _rand.Next((int)minX, (int)maxX + 1);
+
+                var minY = workArea.Top + ViewportService.SafeMargin;
+                var maxY = workArea.Bottom - petHeight - ViewportService.SafeMargin;
+                if (maxY < minY) maxY = minY;
+                _targetY = _rand.Next((int)minY, (int)maxY + 1);
+
                 _stateTimer = _rand.Next(4, 9);
             }
             else if (roll < 70)
@@ -317,6 +349,7 @@ namespace DesktopPet.Services
                 pet.State = nextState;
                 _stateTimer = _rand.Next(20, 35);
                 _targetX = pet.X;
+                _targetY = pet.Y;
             }
         }
 
@@ -325,6 +358,11 @@ namespace DesktopPet.Services
             if (pet == null) return;
             pet.State = state;
             _targetX = pet.X;
+            _targetY = pet.Y;
+            if (state == PetState.Happy)
+            {
+                _happyBaseY = pet.Y;
+            }
 
             var def = AnimationRegistry.GetDefinition(state);
             double baseDuration = customDuration > 0 ? customDuration : def.TotalDurationSeconds;

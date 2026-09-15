@@ -66,6 +66,11 @@ namespace DesktopPet.Services
                     AudioService.Instance.IsMuted = !AudioService.Instance.IsMuted;
                     muteItem.Checked = AudioService.Instance.IsMuted;
                     _petVM.GameSave.Settings.IsMuted = AudioService.Instance.IsMuted;
+                    SaveService.Instance.SaveGame(_petVM.GameSave);
+                };
+                contextMenu.Opening += (s, e) =>
+                {
+                    muteItem.Checked = AudioService.Instance.IsMuted;
                 };
                 contextMenu.Items.Add(muteItem);
 

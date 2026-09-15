@@ -19,6 +19,18 @@ namespace DesktopPet.Views
         private System.Windows.Point _petStartPoint;
         private bool _hasDraggedSignificantly = false;
 
+        private readonly struct DragSample
+        {
+            public readonly System.Windows.Point ScreenPoint;
+            public readonly DateTime Timestamp;
+            public DragSample(System.Windows.Point screenPoint, DateTime timestamp)
+            {
+                ScreenPoint = screenPoint;
+                Timestamp = timestamp;
+            }
+        }
+        private readonly List<DragSample> _dragSamples = new();
+
         public PetViewModel ViewModel => _viewModel;
 
         public PetWindow(PetViewModel viewModel)
@@ -347,8 +359,11 @@ namespace DesktopPet.Views
 
             _isDragging = true;
             _hasDraggedSignificantly = false;
-            _dragStartScreenPoint = PointToScreen(e.GetPosition(this));
+            var startPt = PointToScreen(e.GetPosition(this));
+            _dragStartScreenPoint = startPt;
             _petStartPoint = new System.Windows.Point(_viewModel.Pet.X, _viewModel.Pet.Y);
+            _dragSamples.Clear();
+            _dragSamples.Add(new DragSample(startPt, DateTime.UtcNow));
             PetRendererControl.CaptureMouse();
         }
 
@@ -357,6 +372,14 @@ namespace DesktopPet.Views
             if (_isDragging && e.LeftButton == MouseButtonState.Pressed)
             {
                 var currentScreen = PointToScreen(e.GetPosition(this));
+                var now = DateTime.UtcNow;
+
+                _dragSamples.Add(new DragSample(currentScreen, now));
+                while (_dragSamples.Count > 1 && (now - _dragSamples[0].Timestamp).TotalMilliseconds > 200)
+                {
+                    _dragSamples.RemoveAt(0);
+                }
+
                 var diffX = currentScreen.X - _dragStartScreenPoint.X;
                 var diffY = currentScreen.Y - _dragStartScreenPoint.Y;
 
@@ -406,16 +429,49 @@ namespace DesktopPet.Views
 
                 if (_hasDraggedSignificantly)
                 {
-                    // Thả chuột sau khi nhấc pet lên cao -> kích hoạt vật lý rơi tự do!
+                    var now = DateTime.UtcNow;
+                    while (_dragSamples.Count > 1 && (now - _dragSamples[0].Timestamp).TotalMilliseconds > 200)
+                    {
+                        _dragSamples.RemoveAt(0);
+                    }
+
+                    double releaseVelocityDipPerSec = 0.0;
+                    if (_dragSamples.Count >= 2)
+                    {
+                        var oldest = _dragSamples[0];
+                        var newest = _dragSamples[^1];
+                        var dtSec = (newest.Timestamp - oldest.Timestamp).TotalSeconds;
+                        if (dtSec > 0.01)
+                        {
+                            var dpi = System.Windows.Media.VisualTreeHelper.GetDpi(this);
+                            double scaleX = dpi.DpiScaleX > 0 ? dpi.DpiScaleX : 1.0;
+                            double scaleY = dpi.DpiScaleY > 0 ? dpi.DpiScaleY : 1.0;
+
+                            double dxDip = (newest.ScreenPoint.X - oldest.ScreenPoint.X) / scaleX;
+                            double dyDip = (newest.ScreenPoint.Y - oldest.ScreenPoint.Y) / scaleY;
+                            double distDip = Math.Sqrt(dxDip * dxDip + dyDip * dyDip);
+                            releaseVelocityDipPerSec = PetAIService.CalculateDragVelocity(distDip, dtSec);
+                        }
+                    }
+                    _dragSamples.Clear();
+
                     var currentPetHeight = PetBaseSize * _viewModel.GameSave.Settings.PetScale;
                     var groundY = ViewportService.GetGroundY(currentPetHeight, _viewModel.GameSave.Settings.SelectedMonitorIndex);
-                    if (_viewModel.Pet.Y < groundY - 15)
+
+                    // Nếu vận tốc thả kéo vượt ngưỡng FastDragReleaseThreshold và pet đang ở trên không -> kích hoạt rơi tự do (Fall -> Hurt -> AI resume)
+                    if (PetAIService.IsFastDragRelease(releaseVelocityDipPerSec) && _viewModel.Pet.Y < groundY - 15)
                     {
                         _viewModel.StartFalling();
+                    }
+                    else
+                    {
+                        // Kéo thả bình thường hoặc thả chậm -> Pet đứng yên tại vị trí thả của người dùng và lưu lại
+                        SaveService.Instance.SaveGame(_viewModel.GameSave);
                     }
                 }
                 else
                 {
+                    _dragSamples.Clear();
                     // Click chuột trái thông thường -> Vuốt ve pet tăng thân mật
                     _viewModel.OnPetClicked();
                 }

@@ -161,12 +161,6 @@ namespace DesktopPet.ViewModels
             var monitorIndex = _save.Settings.SelectedMonitorIndex;
 
             var (cx, cy) = ViewportService.ClampPosition(_pet.X, _pet.Y, petWidth, petHeight, monitorIndex);
-            var groundY = ViewportService.GetGroundY(petHeight, monitorIndex);
-
-            if (_pet.Y >= groundY - 15 || !_aiService.IsFalling)
-            {
-                cy = groundY;
-            }
 
             _pet.X = cx;
             _pet.Y = cy;
@@ -833,8 +827,7 @@ namespace DesktopPet.ViewModels
 
         public void StartFalling()
         {
-            _aiService.IsFalling = true;
-            _pet.State = PetState.Fall;
+            _aiService.StartFalling(_pet);
             OnPropertyChanged(nameof(State));
             RequestPlayAnimation?.Invoke("Fall");
         }

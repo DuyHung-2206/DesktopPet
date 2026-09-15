@@ -21,20 +21,30 @@ namespace DesktopPet.ViewModels
             get => _save.Settings.SoundVolume;
             set
             {
-                _save.Settings.SoundVolume = value;
-                AudioService.Instance.Volume = value;
-                OnPropertyChanged();
+                var clamped = Math.Clamp(value, 0.0, 1.0);
+                if (Math.Abs(_save.Settings.SoundVolume - clamped) > 0.0001)
+                {
+                    _save.Settings.SoundVolume = clamped;
+                    AudioService.Instance.Volume = clamped;
+                    OnPropertyChanged();
+                    OnPropertyChanged(nameof(SoundVolumeText));
+                }
             }
         }
+
+        public string SoundVolumeText => $"{(int)Math.Round(SoundVolume * 100)}%";
 
         public bool IsMuted
         {
             get => _save.Settings.IsMuted;
             set
             {
-                _save.Settings.IsMuted = value;
-                AudioService.Instance.IsMuted = value;
-                OnPropertyChanged();
+                if (_save.Settings.IsMuted != value)
+                {
+                    _save.Settings.IsMuted = value;
+                    AudioService.Instance.IsMuted = value;
+                    OnPropertyChanged();
+                }
             }
         }
 

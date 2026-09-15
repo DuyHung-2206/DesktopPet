@@ -54,6 +54,8 @@ namespace DesktopPet
             // 3. Tải Dữ liệu game
             DataManager.Instance.LoadAllData();
             var save = SaveService.Instance.LoadGame();
+            AudioService.Instance.Volume = save.Settings.SoundVolume;
+            AudioService.Instance.IsMuted = save.Settings.IsMuted;
 
             // 4. Tính toán thời gian Offline
             var offlineResult = OfflineTimeService.CalculateAndApply(save);

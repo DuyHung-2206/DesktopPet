@@ -172,6 +172,9 @@ namespace DesktopPet.Services
             save.QuestProgress ??= new Dictionary<string, int>();
             save.ClaimedQuestIds ??= new List<string>();
             save.Settings ??= new GameSettings();
+            save.Settings.SoundVolume = Math.Clamp(save.Settings.SoundVolume, 0.0, 1.0);
+            AudioService.Instance.Volume = save.Settings.SoundVolume;
+            AudioService.Instance.IsMuted = save.Settings.IsMuted;
 
             // Nếu Coins < 0 (dữ liệu hỏng) thì mới chuẩn hóa về 0, bảo toàn số xu người chơi
             if (save.Coins < 0) save.Coins = 0;
