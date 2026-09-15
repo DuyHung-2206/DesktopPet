@@ -127,11 +127,7 @@ Kiểm tra ma trận tỉ lệ DPI trên độ phân giải chuẩn 1920x1080 (W
 4. [`Views/PetWindow.xaml.cs`](file:///c:/Users/admin/OneDrive/Desktop/DesktopPet/Views/PetWindow.xaml.cs) *(SỬA)*:
    - Sửa thuật toán kéo chuột trong `OnPetMouseMove`: Chia độ lệch pixel thiết bị (`diffX`, `diffY`) cho `DpiScale` của Window để có độ dời DIP chuẩn xác, tránh bị trôi pet nhanh hơn chuột trên màn hình 125% - 200%.
    - Cập nhật `UpdatePosition`: Dùng `ViewportService.SetWindowPosition()` đảm bảo vị trí cửa sổ chính xác trên màn hình được chọn.
-   - Override `OnDpiChanged`: Tự động gọi `UpdatePosition()` và `UpdateRenderer()` ngay khi cửa sổ nhận thông điệp thay đổi DPI từ Windows.
-5. [`Views/MiniGameBallWindow.xaml`](file:///c:/Users/admin/OneDrive/Desktop/DesktopPet/Views/MiniGameBallWindow.xaml) & [`.cs`](file:///c:/Users/admin/OneDrive/Desktop/DesktopPet/Views/MiniGameBallWindow.xaml.cs) *(SỬA)*:
-   - Chuyển `WindowStartupLocation="Manual"` và định vị cửa sổ khớp với Working Area của màn hình được chọn thay vì phụ thuộc `WindowState="Maximized"` có thể bị nhảy về màn hình chính.
-   - Giới hạn vật lý quả bóng nảy trong phạm vi Viewport của màn hình tương ứng.
-6. [`ViewModels/SettingsViewModel.cs`](file:///c:/Users/admin/OneDrive/Desktop/DesktopPet/ViewModels/SettingsViewModel.cs) *(SỬA)*:
+5. [`ViewModels/SettingsViewModel.cs`](file:///c:/Users/admin/OneDrive/Desktop/DesktopPet/ViewModels/SettingsViewModel.cs) *(SỬA)*:
    - Hiển thị chi tiết độ phân giải kèm phần trăm DPI (ví dụ: `1920x1080 (100% DPI) (Chính)`) trong danh sách chọn màn hình.
    - Đăng ký sự kiện `ViewportChanged` để tự động làm mới danh sách màn hình khi có thay đổi hiển thị.
 

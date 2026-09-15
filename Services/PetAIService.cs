@@ -335,6 +335,12 @@ namespace DesktopPet.Services
                 case PetState.Eat:
                     AudioService.Instance.PlayFeed();
                     break;
+                case PetState.Drink:
+                    AudioService.Instance.PlayDrink();
+                    break;
+                case PetState.Play:
+                    AudioService.Instance.PlayHappy();
+                    break;
                 case PetState.Bath:
                     AudioService.Instance.PlayBath();
                     break;
@@ -361,6 +367,16 @@ namespace DesktopPet.Services
         public void TriggerEat(Pet pet, double durationSeconds = -1)
         {
             TriggerState(pet, PetState.Eat, durationSeconds);
+        }
+
+        public void TriggerDrink(Pet pet, double durationSeconds = -1)
+        {
+            TriggerState(pet, PetState.Drink, durationSeconds);
+        }
+
+        public void TriggerPlay(Pet pet, double durationSeconds = -1)
+        {
+            TriggerState(pet, PetState.Play, durationSeconds);
         }
 
         public void TriggerBath(Pet pet, double durationSeconds = -1)

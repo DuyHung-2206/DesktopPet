@@ -30,6 +30,18 @@ namespace DesktopPet.Services
             });
         }
 
+        public void PlayDrink()
+        {
+            Task.Run(() =>
+            {
+                PlayProceduralBeep(480, 70);
+                Task.Delay(60).Wait();
+                PlayProceduralBeep(620, 80);
+                Task.Delay(60).Wait();
+                PlayProceduralBeep(750, 100);
+            });
+        }
+
         public void PlayHappy()
         {
             Task.Run(() =>

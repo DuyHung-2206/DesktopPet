@@ -287,13 +287,13 @@ namespace DesktopPet.Views
         // CONTEXT MENU HANDLERS
         private void OnMenuToggleStatusPopupClick(object sender, RoutedEventArgs e) => _viewModel.IsStatusPopupOpen = !_viewModel.IsStatusPopupOpen;
         private void OnMenuFeedClick(object sender, RoutedEventArgs e) => _viewModel.FeedPet();
+        private void OnMenuDrinkClick(object sender, RoutedEventArgs e) => _viewModel.DrinkPet();
         private void OnMenuPlayClick(object sender, RoutedEventArgs e) => _viewModel.PlayWithPet();
         private void OnMenuBathClick(object sender, RoutedEventArgs e) => _viewModel.BathPet();
         private void OnMenuSleepClick(object sender, RoutedEventArgs e) => _viewModel.ToggleSleep();
         private void OnMenuInventoryClick(object sender, RoutedEventArgs e) => _viewModel.OpenInventory();
         private void OnMenuShopClick(object sender, RoutedEventArgs e) => _viewModel.OpenShop();
         private void OnMenuCollectionClick(object sender, RoutedEventArgs e) => _viewModel.OpenDashboard();
-        private void OnMenuMiniGameClick(object sender, RoutedEventArgs e) => _viewModel.OpenMiniGame();
         private void OnMenuDashboardClick(object sender, RoutedEventArgs e) => _viewModel.OpenDashboard();
         private void OnMenuSettingsClick(object sender, RoutedEventArgs e) => _viewModel.OpenSettings();
         private void OnMenuExitClick(object sender, RoutedEventArgs e)

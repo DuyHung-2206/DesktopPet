@@ -19,7 +19,6 @@ namespace DesktopPet.Views
         private void OnShopClick(object sender, RoutedEventArgs e) => _petVM.OpenShop();
         private void OnInventoryClick(object sender, RoutedEventArgs e) => _petVM.OpenInventory();
         private void OnCollectionClick(object sender, RoutedEventArgs e) => _petVM.OpenDashboard();
-        private void OnMiniGameClick(object sender, RoutedEventArgs e) => _petVM.OpenMiniGame();
         private void OnSettingsClick(object sender, RoutedEventArgs e) => _petVM.OpenSettings();
         private void OnCloseClick(object sender, RoutedEventArgs e) => Hide();
     }

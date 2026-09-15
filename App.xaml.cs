@@ -102,19 +102,12 @@ namespace DesktopPet
                 ShowWindow(_settingsWindow);
             };
 
-            _petVM.RequestOpenMiniGame += () =>
-            {
-                var miniGame = new MiniGameBallWindow(_petVM);
-                miniGame.ShowDialog();
-            };
-
             // 8. Khởi tạo System Tray
             _trayService = new TrayService(
                 _petVM,
                 () => ShowWindow(_settingsWindow),
                 () => { shopVM.RefreshCoins(); ShowWindow(_shopWindow); },
                 () => { invVM.RefreshInventory(); ShowWindow(_inventoryWindow); },
-                () => { var g = new MiniGameBallWindow(_petVM); g.ShowDialog(); },
                 () => Shutdown()
             );
 

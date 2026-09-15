@@ -83,8 +83,7 @@ DesktopPet/
 │   ├── InventoryWindow.xaml       # Cửa sổ túi đồ
 │   ├── PetSelectionWindow.xaml    # Cửa sổ bộ sưu tập pet
 │   ├── SettingsWindow.xaml        # Cửa sổ cài đặt
-│   ├── MainDashboardWindow.xaml   # Bảng điều khiển quản lý game
-│   └── MiniGameBallWindow.xaml    # Mini Game bắt bóng trên màn hình
+│   └── MainDashboardWindow.xaml   # Bảng điều khiển quản lý game
 │
 ├── Services/                      # Các dịch vụ xử lý nền tảng
 │   ├── PetAIService.cs            # Finite State Machine điều khiển hành vi & vật lý rơi

@@ -13,21 +13,18 @@ namespace DesktopPet.Services
         private readonly Action _openSettingsAction;
         private readonly Action _openShopAction;
         private readonly Action _openInventoryAction;
-        private readonly Action _openMiniGameAction;
         private readonly Action _exitAction;
 
         public TrayService(PetViewModel petVM,
                            Action openSettingsAction,
                            Action openShopAction,
                            Action openInventoryAction,
-                           Action openMiniGameAction,
                            Action exitAction)
         {
             _petVM = petVM;
             _openSettingsAction = openSettingsAction;
             _openShopAction = openShopAction;
             _openInventoryAction = openInventoryAction;
-            _openMiniGameAction = openMiniGameAction;
             _exitAction = exitAction;
 
             InitializeTray();
@@ -58,7 +55,6 @@ namespace DesktopPet.Services
 
                 var contextMenu = new ContextMenuStrip();
                 contextMenu.Items.Add("🐾 Hiện / Trọng Tâm Pet", null, (s, e) => _petVM.OnPetClicked());
-                contextMenu.Items.Add("🎯 Chơi Mini Game", null, (s, e) => _openMiniGameAction());
                 contextMenu.Items.Add("🏪 Cửa Hàng", null, (s, e) => _openShopAction());
                 contextMenu.Items.Add("🎒 Túi Đồ", null, (s, e) => _openInventoryAction());
                 contextMenu.Items.Add("⚙️ Cài Đặt", null, (s, e) => _openSettingsAction());

@@ -86,6 +86,7 @@ namespace DesktopPet.ViewModels
         public ICommand ClickPetCommand { get; }
         public ICommand ToggleStatusPopupCommand { get; }
         public ICommand FeedCommand { get; }
+        public ICommand DrinkCommand { get; }
         public ICommand PlayCommand { get; }
         public ICommand BathCommand { get; }
         public ICommand SleepToggleCommand { get; }
@@ -93,7 +94,6 @@ namespace DesktopPet.ViewModels
         public event Action? RequestOpenShop;
         public event Action? RequestOpenInventory;
         public event Action? RequestOpenDashboard;
-        public event Action? RequestOpenMiniGame;
         public event Action? RequestOpenSettings;
 
         public PetViewModel(GameSave save)
@@ -108,6 +108,7 @@ namespace DesktopPet.ViewModels
             ClickPetCommand = new RelayCommand(OnPetClicked);
             ToggleStatusPopupCommand = new RelayCommand(() => IsStatusPopupOpen = !IsStatusPopupOpen);
             FeedCommand = new RelayCommand(FeedPet);
+            DrinkCommand = new RelayCommand(DrinkPet);
             PlayCommand = new RelayCommand(PlayWithPet);
             BathCommand = new RelayCommand(BathPet);
             SleepToggleCommand = new RelayCommand(ToggleSleep);
@@ -331,10 +332,14 @@ namespace DesktopPet.ViewModels
                     {
                         state.ExpiredCounted = true;
                         state.Active = false;
+                        state.Completed = true;
                         RecordFailedRequest();
                     }
                 }
             }
+
+            // Rule 18: Không để nhu cầu mới ngắt quãng các hoạt ảnh OneShot đang diễn ra
+            if (PetAIService.IsOneShotOrHighPriority(_pet.State)) return;
 
             // 1. Kiểm tra theo ngưỡng chỉ số suy giảm
             if (_pet.Hunger < 35)
@@ -348,6 +353,20 @@ namespace DesktopPet.ViewModels
             else if (_pet.Hunger > 70)
             {
                 _pet.Needs[PetNeedTypes.Hunger].Completed = false;
+            }
+
+            // THIRST NEED: Kích hoạt khi IsThirsty (Energy < 45)
+            if (_pet.IsThirsty)
+            {
+                if (!IsNeedActive(PetNeedTypes.Thirst) && !_pet.Needs[PetNeedTypes.Thirst].Completed)
+                {
+                    TriggerNeed(PetNeedTypes.Thirst, "Khát nước quá nè, cho mình bình sữa hoặc nước mát nhé! 🥛");
+                    NotificationService.RequestNotification("thirst", "Thú cưng khát nước!", $"{_pet.Name} đang khát nước, hãy cho bé uống sữa hoặc nước nhé! 🥛");
+                }
+            }
+            else if (_pet.Energy > 70)
+            {
+                _pet.Needs[PetNeedTypes.Thirst].Completed = false;
             }
 
             if (_pet.Cleanliness < 35)
@@ -409,6 +428,7 @@ namespace DesktopPet.ViewModels
                 {
                     var validCandidates = new List<string>();
                     if (_pet.Hunger < 70 && !_pet.Needs[PetNeedTypes.Hunger].Completed) validCandidates.Add(PetNeedTypes.Hunger);
+                    if (_pet.Energy < 70 && !_pet.Needs[PetNeedTypes.Thirst].Completed) validCandidates.Add(PetNeedTypes.Thirst);
                     if (_pet.Cleanliness < 70 && !_pet.Needs[PetNeedTypes.Bath].Completed) validCandidates.Add(PetNeedTypes.Bath);
                     if (_pet.Happiness < 70 && !_pet.Needs[PetNeedTypes.Play].Completed) validCandidates.Add(PetNeedTypes.Play);
                     if (_pet.Energy < 50 && !_pet.Needs[PetNeedTypes.Sleep].Completed) validCandidates.Add(PetNeedTypes.Sleep);
@@ -569,7 +589,8 @@ namespace DesktopPet.ViewModels
 
                 if (_pet.State != PetState.Sick)
                 {
-                    _aiService.TriggerHappy(_pet);
+                    _aiService.TriggerPlay(_pet);
+                    PlayAnimation("Play");
                     AudioService.Instance.PlayHappy();
                 }
 
@@ -587,6 +608,17 @@ namespace DesktopPet.ViewModels
                 }
 
                 NotifyStatProperties();
+            }
+        }
+
+        public void DrinkPet()
+        {
+            // Chế độ chill: Thức uống vô hạn, ưu tiên sữa tươi
+            var drinkItem = DataManager.Instance.GetItem("milk") ?? DataManager.Instance.ItemsList.FirstOrDefault(i => i.Id == "milk" || i.Name.Contains("Sữa", StringComparison.OrdinalIgnoreCase));
+
+            if (drinkItem != null)
+            {
+                PetViewModel_ApplyItem(drinkItem);
             }
         }
 
@@ -797,14 +829,38 @@ namespace DesktopPet.ViewModels
 
             _statService.ApplyItemEffect(_pet, item);
 
-            bool isFood = item.Category == "Food";
-            bool isToy = item.Category == "Toy";
             bool isDrink = item.Id == "milk" || item.Name.Contains("Sữa", StringComparison.OrdinalIgnoreCase);
+            bool isToy = item.Category == "Toy";
+            bool isFood = item.Category == "Food" && !isDrink;
 
-            if (isFood || isDrink)
+            if (isDrink)
             {
-                // KÍCH HOẠT ANIMATION EAT KHI DÙNG THỨC ĂN HOẶC ĐỒ UỐNG
+                _aiService.TriggerDrink(_pet);
+                PlayAnimation("Drink");
+                AudioService.Instance.PlayDrink();
+            }
+            else if (isFood)
+            {
+                _aiService.TriggerEat(_pet);
                 PlayAnimation("Eat");
+                AudioService.Instance.PlayFeed();
+                _save.TotalFeedCount++;
+                CheckAchievementProgress("first_feed", 1);
+                CheckAchievementProgress("feed_50_times", 1);
+            }
+            else if (isToy)
+            {
+                _save.TotalPlayCount++;
+                CheckAchievementProgress("first_play", 1);
+                CheckAchievementProgress("play_50_times", 1);
+                CheckSickCondition();
+
+                if (_pet.State != PetState.Sick)
+                {
+                    _aiService.TriggerPlay(_pet);
+                    PlayAnimation("Play");
+                    AudioService.Instance.PlayHappy();
+                }
             }
 
             int expGain = 0;
@@ -829,25 +885,16 @@ namespace DesktopPet.ViewModels
             if (!needCompleted)
             {
                 // Dùng item khi pet không yêu cầu -> Không cộng EXP
-                if (isFood)
+                if (isDrink)
                 {
-                    _save.TotalFeedCount++;
-                    CheckAchievementProgress("first_feed", 1);
-                    CheckAchievementProgress("feed_50_times", 1);
-                    AudioService.Instance.PlayFeed();
+                    ShowEmote($"Uống ừng ực ngon quá! {item.Icon} ✨", 3.0);
+                }
+                else if (isFood)
+                {
                     ShowEmote($"Yum! {item.Icon} Măm măm ngon miệng!", 5.0);
                 }
                 else if (isToy)
                 {
-                    _save.TotalPlayCount++;
-                    CheckAchievementProgress("first_play", 1);
-                    CheckAchievementProgress("play_50_times", 1);
-                    CheckSickCondition();
-                    if (_pet.State != PetState.Sick)
-                    {
-                        _aiService.TriggerHappy(_pet);
-                        AudioService.Instance.PlayHappy();
-                    }
                     ShowEmote($"Vui ghê! {item.Icon}", 2.5);
                 }
                 else
@@ -862,7 +909,6 @@ namespace DesktopPet.ViewModels
         public void OpenShop() => RequestOpenShop?.Invoke();
         public void OpenInventory() => RequestOpenInventory?.Invoke();
         public void OpenDashboard() => RequestOpenDashboard?.Invoke();
-        public void OpenMiniGame() => RequestOpenMiniGame?.Invoke();
         public void OpenSettings() => RequestOpenSettings?.Invoke();
     }
 }

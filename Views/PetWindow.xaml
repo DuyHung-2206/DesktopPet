@@ -22,6 +22,7 @@
             <MenuItem Header="📊 Ẩn / Hiện Bảng Chỉ Số" Click="OnMenuToggleStatusPopupClick" FontWeight="Bold" />
             <Separator />
             <MenuItem Header="🍖 Cho Ăn" Click="OnMenuFeedClick" />
+            <MenuItem Header="🥛 Cho Uống Nước" Click="OnMenuDrinkClick" />
             <MenuItem Header="🎾 Chơi Đùa" Click="OnMenuPlayClick" />
             <MenuItem Header="🛁 Tắm Rửa" Click="OnMenuBathClick" />
             <MenuItem Header="😴 Ngủ / Thức Dậy" Click="OnMenuSleepClick" />
@@ -29,7 +30,6 @@
             <MenuItem Header="🎒 Mở Túi Đồ" Click="OnMenuInventoryClick" />
             <MenuItem Header="🏪 Tủ Đồ &amp; Bếp Ăn" Click="OnMenuShopClick" />
             <MenuItem Header="🐾 Bộ Sưu Tập Pet" Click="OnMenuCollectionClick" />
-            <MenuItem Header="🎯 Mini Game Bắt Bóng" Click="OnMenuMiniGameClick" />
             <Separator />
             <MenuItem Header="📊 Bảng Quản Lý Menu" Click="OnMenuDashboardClick" />
             <MenuItem Header="⚙️ Cài Đặt" Click="OnMenuSettingsClick" />

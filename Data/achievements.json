@@ -97,16 +97,5 @@
     "rewardCoins": 0,
     "rewardExp": 300,
     "isUnlocked": false
-  },
-  {
-    "id": "minigame_master",
-    "title": "Bắt Bóng Siêu Đẳng",
-    "description": "Hoàn thành 10 lượt bắt bóng thành công trong Mini Game.",
-    "icon": "🎯",
-    "target": 10,
-    "current": 0,
-    "rewardCoins": 150,
-    "rewardExp": 100,
-    "isUnlocked": false
   }
 ]

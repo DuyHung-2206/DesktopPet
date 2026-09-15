@@ -47,6 +47,7 @@ namespace DesktopPet.Models
 
         // Kiểm tra ngưỡng trạng thái
         public bool IsHungry => Hunger < 30;
+        public bool IsThirsty => Energy < 45 && State != PetState.Sleep;
         public bool IsSleepy => Energy < 25;
         public bool IsDirty => Cleanliness < 35;
         public bool IsSad => Happiness < 30;

@@ -94,16 +94,11 @@
                             <Button.Resources><Style TargetType="Border"><Setter Property="CornerRadius" Value="12"/></Style></Button.Resources>
                             <StackPanel Orientation="Horizontal"><TextBlock Text="🐾" FontSize="16" Margin="0,0,6,0"/><TextBlock Text="Bộ Sưu Tập" FontWeight="Bold" Foreground="#6A1B9A"/></StackPanel>
                         </Button>
-                        <Button Click="OnMiniGameClick" Height="42" Margin="3" Background="#FFFDE7" BorderBrush="#FBC02D" BorderThickness="1.5" Cursor="Hand">
+                        <Button Click="OnSettingsClick" Height="42" Margin="3" Background="#ECEFF1" BorderBrush="#78909C" BorderThickness="1.5" Cursor="Hand">
                             <Button.Resources><Style TargetType="Border"><Setter Property="CornerRadius" Value="12"/></Style></Button.Resources>
-                            <StackPanel Orientation="Horizontal"><TextBlock Text="🎯" FontSize="16" Margin="0,0,6,0"/><TextBlock Text="Mini Game" FontWeight="Bold" Foreground="#F57F17"/></StackPanel>
+                            <StackPanel Orientation="Horizontal"><TextBlock Text="⚙️" FontSize="16" Margin="0,0,6,0"/><TextBlock Text="Cài Đặt" FontWeight="Bold" Foreground="#37474F"/></StackPanel>
                         </Button>
                     </UniformGrid>
-
-                    <Button Click="OnSettingsClick" Height="38" Margin="3" Background="#ECEFF1" BorderBrush="#78909C" BorderThickness="1.5" Cursor="Hand">
-                        <Button.Resources><Style TargetType="Border"><Setter Property="CornerRadius" Value="12"/></Style></Button.Resources>
-                        <StackPanel Orientation="Horizontal"><TextBlock Text="⚙️" FontSize="16" Margin="0,0,6,0"/><TextBlock Text="Cài Đặt Hệ Thống" FontWeight="Bold" Foreground="#37474F"/></StackPanel>
-                    </Button>
                 </StackPanel>
 
                 <!-- CỘT PHẢI: ĐIỂM DANH 7 NGÀY & DANH SÁCH THÀNH TỰU -->

@@ -25,7 +25,6 @@ namespace DesktopPet.ViewModels
         public ICommand OpenShopCommand { get; }
         public ICommand OpenInventoryCommand { get; }
         public ICommand OpenCollectionCommand { get; }
-        public ICommand OpenMiniGameCommand { get; }
         public ICommand OpenSettingsCommand { get; }
 
         public MainDashboardViewModel(PetViewModel petVM)
@@ -37,7 +36,6 @@ namespace DesktopPet.ViewModels
             OpenShopCommand = new RelayCommand(() => _petVM.OpenShop());
             OpenInventoryCommand = new RelayCommand(() => _petVM.OpenInventory());
             OpenCollectionCommand = new RelayCommand(() => _petVM.OpenDashboard());
-            OpenMiniGameCommand = new RelayCommand(() => _petVM.OpenMiniGame());
             OpenSettingsCommand = new RelayCommand(() => _petVM.OpenSettings());
 
             LoadDailyRewards();
