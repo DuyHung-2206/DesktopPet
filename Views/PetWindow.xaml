@@ -27,11 +27,14 @@
             <MenuItem Header="🛁 Tắm Rửa" Click="OnMenuBathClick" />
             <MenuItem Header="😴 Ngủ / Thức Dậy" Click="OnMenuSleepClick" />
             <Separator />
+            <MenuItem Header="ℹ️ Thông tin Pet" Click="OnMenuDashboardClick" FontWeight="Bold" />
+            <MenuItem Header="🎯 Nhiệm vụ" Click="OnMenuQuestsClick" />
+            <Separator />
             <MenuItem Header="🎒 Mở Túi Đồ" Click="OnMenuInventoryClick" />
             <MenuItem Header="🛒 Cửa hàng" Click="OnMenuShopClick" />
             <MenuItem Header="🐾 Bộ Sưu Tập Pet" Click="OnMenuCollectionClick" />
+            <MenuItem Header="🎁 Phần thưởng hàng ngày" Click="OnMenuDailyRewardsClick" />
             <Separator />
-            <MenuItem Header="📊 Bảng Quản Lý Menu" Click="OnMenuDashboardClick" />
             <MenuItem Header="⚙️ Cài Đặt" Click="OnMenuSettingsClick" />
             <Separator />
             <MenuItem Header="❌ Thoát Game" Click="OnMenuExitClick" />

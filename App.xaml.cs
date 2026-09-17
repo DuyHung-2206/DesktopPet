@@ -101,6 +101,22 @@ namespace DesktopPet
 
             _petVM.RequestOpenDashboard += () =>
             {
+                dashVM.RefreshDashboard();
+                _dashboardWindow.ShowInformationPanel();
+                ShowWindow(_dashboardWindow);
+            };
+
+            _petVM.RequestOpenQuests += () =>
+            {
+                dashVM.RefreshDashboard();
+                _dashboardWindow.ShowQuestPanel();
+                ShowWindow(_dashboardWindow);
+            };
+
+            _petVM.RequestOpenDailyRewards += () =>
+            {
+                dashVM.RefreshDashboard();
+                _dashboardWindow.ShowDailyRewardsPanel();
                 ShowWindow(_dashboardWindow);
             };
 

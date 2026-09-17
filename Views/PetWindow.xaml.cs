@@ -489,6 +489,8 @@ namespace DesktopPet.Views
         private void OnMenuShopClick(object sender, RoutedEventArgs e) => _viewModel.OpenShop();
         private void OnMenuCollectionClick(object sender, RoutedEventArgs e) => _viewModel.OpenCollection();
         private void OnMenuDashboardClick(object sender, RoutedEventArgs e) => _viewModel.OpenDashboard();
+        private void OnMenuQuestsClick(object sender, RoutedEventArgs e) => _viewModel.OpenQuests();
+        private void OnMenuDailyRewardsClick(object sender, RoutedEventArgs e) => _viewModel.OpenDailyRewards();
         private void OnMenuSettingsClick(object sender, RoutedEventArgs e) => _viewModel.OpenSettings();
         private void OnMenuExitClick(object sender, RoutedEventArgs e)
         {

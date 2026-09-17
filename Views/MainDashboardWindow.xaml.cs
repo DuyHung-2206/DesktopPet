@@ -16,10 +16,21 @@ namespace DesktopPet.Views
             DataContext = _viewModel;
         }
 
-        private void OnShopClick(object sender, RoutedEventArgs e) => _petVM.OpenShop();
-        private void OnInventoryClick(object sender, RoutedEventArgs e) => _petVM.OpenInventory();
-        private void OnCollectionClick(object sender, RoutedEventArgs e) => _petVM.OpenDashboard();
-        private void OnSettingsClick(object sender, RoutedEventArgs e) => _petVM.OpenSettings();
+        public void ShowInformationPanel() => ShowPanel(InformationPanel, "Thông tin Pet");
+
+        public void ShowQuestPanel() => ShowPanel(QuestPanel, "Nhiệm vụ");
+
+        public void ShowDailyRewardsPanel() => ShowPanel(DailyRewardsPanel, "Phần thưởng hàng ngày");
+
+        private void ShowPanel(System.Windows.UIElement panel, string title)
+        {
+            InformationPanel.Visibility = Visibility.Collapsed;
+            QuestPanel.Visibility = Visibility.Collapsed;
+            DailyRewardsPanel.Visibility = Visibility.Collapsed;
+            panel.Visibility = Visibility.Visible;
+            PanelTitleText.Text = title;
+        }
+
         private void OnCloseClick(object sender, RoutedEventArgs e) => Hide();
     }
 }

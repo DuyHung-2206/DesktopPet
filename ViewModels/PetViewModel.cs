@@ -97,6 +97,8 @@ namespace DesktopPet.ViewModels
         public event Action? RequestOpenShop;
         public event Action? RequestOpenInventory;
         public event Action? RequestOpenDashboard;
+        public event Action? RequestOpenQuests;
+        public event Action? RequestOpenDailyRewards;
         public event Action? RequestOpenCollection;
         public event Action? RequestOpenSettings;
         public event Action? InventoryChanged;
@@ -1335,6 +1337,8 @@ namespace DesktopPet.ViewModels
         public void OpenShop() => RequestOpenShop?.Invoke();
         public void OpenInventory() => RequestOpenInventory?.Invoke();
         public void OpenDashboard() => RequestOpenDashboard?.Invoke();
+        public void OpenQuests() => RequestOpenQuests?.Invoke();
+        public void OpenDailyRewards() => RequestOpenDailyRewards?.Invoke();
         public void OpenCollection() => RequestOpenCollection?.Invoke();
         public void OpenSettings() => RequestOpenSettings?.Invoke();
     }

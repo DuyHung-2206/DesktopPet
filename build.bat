@@ -12,22 +12,28 @@ set OUTPUT_DIR=%PROJECT_DIR%Build\Release\win-x64
 set PUBLISH_DIR=%PROJECT_DIR%Publish\DesktopPetWorld
 
 echo [1/5] Kiểm tra môi trường .NET SDK...
-where dotnet >nul 2>nul
-if %errorlevel% neq 0 (
-    if exist "C:\dotnet\dotnet.exe" (
-        set "DOTNET_CMD=C:\dotnet\dotnet.exe"
-    ) else (
+if exist "C:\dotnet\dotnet.exe" (
+    set "DOTNET_CMD=C:\dotnet\dotnet.exe"
+) else (
+    where dotnet >nul 2>nul
+    if %errorlevel% neq 0 (
         echo [!] Khong tim thay dotnet CLI trong PATH hoac C:\dotnet.
         echo [!] Vui long cai dat .NET 8 SDK tu https://dot.net
         pause
         exit /b 1
     )
-) else (
     set "DOTNET_CMD=dotnet"
 )
 
 echo Đang sử dụng: %DOTNET_CMD%
 %DOTNET_CMD% --version
+%DOTNET_CMD% --list-sdks | findstr /R "^[0-9][0-9]*\." >nul
+if %errorlevel% neq 0 (
+    echo [!] Dotnet da duoc tim thay nhung khong co .NET SDK.
+    echo [!] Vui long cai dat .NET 8 SDK tu https://dot.net
+    pause
+    exit /b 1
+)
 echo.
 
 echo [2/5] Dọn dẹp bản build cũ...
