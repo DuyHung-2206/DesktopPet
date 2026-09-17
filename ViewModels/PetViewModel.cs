@@ -58,6 +58,7 @@ namespace DesktopPet.ViewModels
         public string BaseColor => _species?.BaseColor ?? "#FFA726";
         public string SecondaryColor => _species?.SecondaryColor ?? "#FFE082";
         public double PetScale => _save.Settings?.PetScale ?? 1.0;
+        public bool IsDog => _species?.Id?.Equals("dog", StringComparison.OrdinalIgnoreCase) == true || _pet?.SpeciesId?.Equals("dog", StringComparison.OrdinalIgnoreCase) == true;
 
         public bool IsStatusPopupOpen
         {
@@ -99,6 +100,7 @@ namespace DesktopPet.ViewModels
         public event Action? RequestOpenCollection;
         public event Action? RequestOpenSettings;
         public event Action? InventoryChanged;
+        public event Action? GameDataReset;
 
         public void TriggerInventoryChanged() => InventoryChanged?.Invoke();
 
@@ -177,9 +179,17 @@ namespace DesktopPet.ViewModels
                 _save.ActivePetId = found.Id;
                 _pet = found;
                 _species = DataManager.Instance.GetSpecies(_pet.SpeciesId);
+                _aiService.ResetAIState(_pet, _species);
                 SaveService.Instance.SaveGame(_save);
                 NotifyAllProperties();
-                ShowEmote($"Xin chào, mình là {_pet.Name}! ✨", 2.0);
+                if (IsDog)
+                {
+                    ShowEmote($"Gâu gâu! Xin chào, mình là {_pet.Name} - chú chó trung thành của bạn! 🐶✨", 2.5);
+                }
+                else
+                {
+                    ShowEmote($"Xin chào, mình là {_pet.Name}! ✨", 2.0);
+                }
             }
         }
 
@@ -274,6 +284,20 @@ namespace DesktopPet.ViewModels
 
         public string GetDefaultNeedPrompt(string needType)
         {
+            if (IsDog)
+            {
+                return needType switch
+                {
+                    PetNeedTypes.Hunger => "Gâu gâu! Bụng cún réo ùng ục rồi, cho cún xin khúc xương hoặc thức ăn ngon nhé! 🍖🐶",
+                    PetNeedTypes.Thirst => "Khát khô cả cổ rồi nè! Cho cún bát nước mát hoặc sữa béo với bạn ơi! 🥛🐶💦",
+                    PetNeedTypes.Play => "Gâu gâu! Ném bóng đi bạn ơi, cún chạy nhặt về cho bạn liền nè! 🎾🐕💨",
+                    PetNeedTypes.Bath => "Lông cún dính đầy đất cát rồi, bạn tắm mát thơm tho cho cún với nha! 🛁🧼🐾",
+                    PetNeedTypes.Sleep => "Oáp... buồn ngủ quá rồi, cún cuộn tròn làm một giấc ngủ ngon đây! 💤🐶",
+                    PetNeedTypes.Affection => "Gâu! Gãi tai xoa bụng cho cún một chút đi, thích lắm luôn á! 🥰🐶💖",
+                    _ => $"{_pet.Name} đang vẫy đuôi chờ bạn chăm sóc nè! Gâu gâu! 🐶✨"
+                };
+            }
+
             return needType switch
             {
                 PetNeedTypes.Hunger => "Mimi đói bụng rồi, cho mình ăn cá/đồ ăn ngon nhé! 🍖",
@@ -351,7 +375,14 @@ namespace DesktopPet.ViewModels
         {
             if (_aiService.IsFalling || _pet.State == PetState.Hurt) return;
             _aiService.TriggerState(_pet, PetState.Angry);
-            ShowEmote("Hứ! Sao gọi mãi mà Sen không thèm quan tâm gì hết á! 😾💢", 4.0);
+            if (IsDog)
+            {
+                ShowEmote("Gừ gừ... Gọi nãy giờ mà bạn chẳng đoái hoài gì tới cún hết trơn á! Giận luôn! 🐶💢🦴", 4.0);
+            }
+            else
+            {
+                ShowEmote("Hứ! Sao gọi mãi mà Sen không thèm quan tâm gì hết á! 😾💢", 4.0);
+            }
             OnPropertyChanged(nameof(State));
             RequestPlayAnimation?.Invoke("Angry");
         }
@@ -435,7 +466,7 @@ namespace DesktopPet.ViewModels
             {
                 if (!IsNeedActive(PetNeedTypes.Play) && !_pet.Needs[PetNeedTypes.Play].Completed)
                 {
-                    TriggerNeed(PetNeedTypes.Play, "Buồn chán quá... Chơi bóng với mình một lát nhé! 🎾");
+                    TriggerNeed(PetNeedTypes.Play);
                 }
             }
             else if (_pet.Happiness >= 85)
@@ -447,7 +478,7 @@ namespace DesktopPet.ViewModels
             {
                 if (!IsNeedActive(PetNeedTypes.Affection) && !_pet.Needs[PetNeedTypes.Affection].Completed)
                 {
-                    TriggerNeed(PetNeedTypes.Affection, "Sen ơi, vuốt ve xoa đầu mình một chút đi! 🥰");
+                    TriggerNeed(PetNeedTypes.Affection);
                 }
             }
             else if (_pet.Affection > 70)
@@ -488,6 +519,18 @@ namespace DesktopPet.ViewModels
             _clickInactivityTimer = 0.0;
         }
 
+        public void ShowSickWarning(double durationSeconds = 2.5)
+        {
+            if (IsDog)
+            {
+                ShowEmote("Hức... Cún đang sốt và mệt quá, nằm nghỉ một chút nha bạn ơi... 🐶🤒💊", durationSeconds);
+            }
+            else
+            {
+                ShowEmote("Tớ đang bị ốm, chưa muốn làm gì.", durationSeconds);
+            }
+        }
+
         public void UpdateInactivity(double deltaSeconds)
         {
             _clickInactivityTimer += deltaSeconds;
@@ -500,7 +543,14 @@ namespace DesktopPet.ViewModels
                     if (_pet.State != PetState.Sad)
                     {
                         _pet.State = PetState.Sad;
-                        ShowEmote("Sen bỏ quên Mimi rồi sao... Buồn thiu luôn á... 😿💧", 4.0);
+                        if (IsDog)
+                        {
+                            ShowEmote("Bạn bận việc quên mất cún rồi ư... Cún cụp tai nằm đợi bạn nè... 🐶💧🐾", 4.0);
+                        }
+                        else
+                        {
+                            ShowEmote("Sen bỏ quên Mimi rồi sao... Buồn thiu luôn á... 😿💧", 4.0);
+                        }
                         OnPropertyChanged(nameof(State));
                     }
                 }
@@ -518,7 +568,7 @@ namespace DesktopPet.ViewModels
                 _pet.State = PetState.Sick;
                 _sickHealthTimer = 0.0;
                 _recoveryHealthTimer = 0.0;
-                ShowEmote("Tớ đang bị ốm, chưa muốn làm gì.", 4.0);
+                ShowSickWarning(4.0);
                 OnPropertyChanged(nameof(State));
                 RequestPlayAnimation?.Invoke("Sick");
                 SaveService.Instance.SaveGame(_save);
@@ -573,7 +623,7 @@ namespace DesktopPet.ViewModels
         {
             if (_pet.IsSick || _pet.State == PetState.Sick)
             {
-                ShowEmote("Tớ đang bị ốm, chưa muốn làm gì.", 2.5);
+                ShowSickWarning(2.5);
                 return;
             }
 
@@ -604,14 +654,30 @@ namespace DesktopPet.ViewModels
             // KIỂM TRA NHU CẦU VUỐT VE / TƯƠNG TÁC (Quy tắc 1, 2, 3, 10)
             if (CompleteNeed(PetNeedTypes.Affection, 10, out int expGain, 5))
             {
-                ShowEmote($"Thích được vuốt ve xoa đầu nhất! (+{expGain} EXP, +5 Xu) 🥰💖✨", 3.0);
+                if (IsDog)
+                {
+                    ShowEmote($"Gâu! Được xoa đầu gãi cằm sướng rơn người, vẫy đuôi tít mù luôn! (+{expGain} EXP, +5 Xu) 🐶💖✨", 3.0);
+                }
+                else
+                {
+                    ShowEmote($"Thích được vuốt ve xoa đầu nhất! (+{expGain} EXP, +5 Xu) 🥰💖✨", 3.0);
+                }
             }
             else
             {
-                // Click bình thường -> KHÔNG CỘNG EXP (Quy tắc 10)
-                var emotes = new[] { "❤️", "💖", "✨", "🎵", "🥰", "🐾", "Meo meo~ 🐾", "Yêu bạn nhiều lắm! 💖" };
-                var randomEmote = emotes[new Random().Next(emotes.Length)];
-                ShowEmote(randomEmote, 2.0);
+                if (IsDog)
+                {
+                    var dogEmotes = new[] { "Gâu gâu! 🐶🐾", "Vẫy đuôi mừng bạn nè! 🐕✨", "❤️", "💖", "Thương bạn nhất trần đời! 🥰", "Gâu gâu! Ném bóng đi bạn ơi! 🎾", "Gâu! Cún luôn trung thành bên bạn! 🐶🦴", "Chơi cùng cún nha! ✨🐾", "🥰🐶" };
+                    var randomEmote = dogEmotes[new Random().Next(dogEmotes.Length)];
+                    ShowEmote(randomEmote, 2.0);
+                }
+                else
+                {
+                    // Click bình thường -> KHÔNG CỘNG EXP (Quy tắc 10)
+                    var emotes = new[] { "❤️", "💖", "✨", "🎵", "🥰", "🐾", "Meo meo~ 🐾", "Yêu bạn nhiều lắm! 💖" };
+                    var randomEmote = emotes[new Random().Next(emotes.Length)];
+                    ShowEmote(randomEmote, 2.0);
+                }
             }
 
             NotifyStatProperties();
@@ -647,7 +713,14 @@ namespace DesktopPet.ViewModels
             if (invFood == null || invFood.Quantity <= 0)
             {
                 // Hết thức ăn: Không cho ăn, không phát animation, không tăng chỉ số, không hoàn thành nhiệm vụ/need
-                ShowEmote("Đã hết thức ăn, hãy vào Cửa hàng để mua thêm.", 3.0);
+                if (IsDog)
+                {
+                    ShowEmote("Gâu gâu... Hết sạch đồ ăn rồi, bạn ghé Cửa hàng mua đồ ngon cho cún nha! 🦴🐶", 3.0);
+                }
+                else
+                {
+                    ShowEmote("Đã hết thức ăn, hãy vào Cửa hàng để mua thêm.", 3.0);
+                }
                 return;
             }
 
@@ -678,12 +751,26 @@ namespace DesktopPet.ViewModels
             // KIỂM TRA NHU CẦU ĂN:
             if (CompleteNeed(PetNeedTypes.Hunger, 15, out int expGain, 10))
             {
-                ShowEmote($"Yum! {foodItem.Icon} Đang đói được ăn no thích quá! (+{expGain} EXP, +10 Xu) ✨💖", 5.0);
+                if (IsDog)
+                {
+                    ShowEmote($"Ngoạm ngoạm! {foodItem.Icon} Đồ ăn thơm nức mũi, ngon tuyệt cú cún! (+{expGain} EXP, +10 Xu) 🍖🐶💖", 5.0);
+                }
+                else
+                {
+                    ShowEmote($"Yum! {foodItem.Icon} Đang đói được ăn no thích quá! (+{expGain} EXP, +10 Xu) ✨💖", 5.0);
+                }
             }
             else
             {
                 // Pet không yêu cầu ăn hoặc đã hoàn thành nhu cầu này rồi -> KHÔNG CỘNG EXP
-                ShowEmote($"Yum! {foodItem.Icon} Măm măm ngon miệng!", 5.0);
+                if (IsDog)
+                {
+                    ShowEmote($"Ngoạm ngoạm! {foodItem.Icon} Đồ ăn ngon quá, cún liếm sạch bát luôn rồi! 🐶✨", 5.0);
+                }
+                else
+                {
+                    ShowEmote($"Yum! {foodItem.Icon} Măm măm ngon miệng!", 5.0);
+                }
             }
 
             NotifyStatProperties();
@@ -694,7 +781,7 @@ namespace DesktopPet.ViewModels
             // PART 6: Nếu đang ốm -> Chặn chơi đùa
             if (_pet.IsSick || _pet.State == PetState.Sick)
             {
-                ShowEmote("Tớ đang bị ốm, chưa muốn làm gì.", 2.5);
+                ShowSickWarning(2.5);
                 return;
             }
 
@@ -703,7 +790,14 @@ namespace DesktopPet.ViewModels
             if (invToy == null || invToy.Quantity <= 0)
             {
                 // Hết đồ chơi: Không chơi, không phát animation Play, không tăng TotalPlayCount, không hoàn thành need
-                ShowEmote("Đã hết đồ chơi, hãy vào Cửa hàng để mua thêm.", 3.0);
+                if (IsDog)
+                {
+                    ShowEmote("Ư ử... Hết đồ chơi mất tiêu rồi, bạn vào Cửa hàng mua bóng hoặc xương cho cún chơi nha! 🎾🐶", 3.0);
+                }
+                else
+                {
+                    ShowEmote("Đã hết đồ chơi, hãy vào Cửa hàng để mua thêm.", 3.0);
+                }
                 return;
             }
 
@@ -736,13 +830,27 @@ namespace DesktopPet.ViewModels
             // KIỂM TRA NHU CẦU CHƠI:
             if (CompleteNeed(PetNeedTypes.Play, 20, out int expGain, 10))
             {
-                ShowEmote($"Vui quá! {toyItem.Icon} Chơi đúng lúc thích mê! (+{expGain} EXP, +10 Xu) 🎾✨", 3.0);
+                if (IsDog)
+                {
+                    ShowEmote($"Gâu gâu! {toyItem.Icon} Cắn bóng chạy vòng vòng vui ngất ngây! (+{expGain} EXP, +10 Xu) 🎾🐕💨", 3.0);
+                }
+                else
+                {
+                    ShowEmote($"Vui quá! {toyItem.Icon} Chơi đúng lúc thích mê! (+{expGain} EXP, +10 Xu) 🎾✨", 3.0);
+                }
             }
             else
             {
                 if (_pet.State != PetState.Sick)
                 {
-                    ShowEmote($"Vui quá! {toyItem.Icon} Chơi đùa thích ghê!", 2.5);
+                    if (IsDog)
+                    {
+                        ShowEmote($"Gâu gâu! {toyItem.Icon} Bắt được đồ chơi rồi nè, ném tiếp đi bạn ơi! 🐶🎾✨", 2.5);
+                    }
+                    else
+                    {
+                        ShowEmote($"Vui quá! {toyItem.Icon} Chơi đùa thích ghê!", 2.5);
+                    }
                 }
             }
 
@@ -753,7 +861,7 @@ namespace DesktopPet.ViewModels
         {
             if (_pet.IsSick || _pet.State == PetState.Sick)
             {
-                ShowEmote("Tớ đang bị ốm, chưa muốn làm gì.", 2.5);
+                ShowSickWarning(2.5);
                 return;
             }
 
@@ -769,7 +877,7 @@ namespace DesktopPet.ViewModels
         {
             if (_pet.IsSick || _pet.State == PetState.Sick)
             {
-                ShowEmote("Tớ đang bị ốm, chưa muốn làm gì.", 2.5);
+                ShowSickWarning(2.5);
                 return;
             }
 
@@ -786,11 +894,25 @@ namespace DesktopPet.ViewModels
             // KIỂM TRA NHU CẦU TẮM:
             if (CompleteNeed(PetNeedTypes.Bath, 15, out int expGain, 10))
             {
-                ShowEmote($"Tắm mát thơm tho sạch sẽ! (+{expGain} EXP, +10 Xu) 🧼🫧✨", 3.0);
+                if (IsDog)
+                {
+                    ShowEmote($"Lắc lắc rũ nước! Lông cún thơm tho, sạch bóng bẩy rồi nha! (+{expGain} EXP, +10 Xu) 🧼🫧🐶✨", 3.0);
+                }
+                else
+                {
+                    ShowEmote($"Tắm mát thơm tho sạch sẽ! (+{expGain} EXP, +10 Xu) 🧼🫧✨", 3.0);
+                }
             }
             else
             {
-                ShowEmote("Tắm mát thơm tho sạch sẽ! 🧼🫧✨", 2.5);
+                if (IsDog)
+                {
+                    ShowEmote("Bọt xà phòng thơm phức! Cún lại đẹp trai sạch sẽ rồi! 🧼🫧🐶", 2.5);
+                }
+                else
+                {
+                    ShowEmote("Tắm mát thơm tho sạch sẽ! 🧼🫧✨", 2.5);
+                }
             }
 
             NotifyStatProperties();
@@ -800,14 +922,21 @@ namespace DesktopPet.ViewModels
         {
             if (_pet.IsSick || _pet.State == PetState.Sick)
             {
-                ShowEmote("Tớ đang bị ốm, chưa muốn làm gì.", 2.5);
+                ShowSickWarning(2.5);
                 return;
             }
 
             if (_pet.State == PetState.Sleep)
             {
                 _aiService.TriggerWakeUp(_pet);
-                ShowEmote("Dậy rồi nè! Chào bạn! ☀️", 1.8);
+                if (IsDog)
+                {
+                    ShowEmote("Gâu! Cún vươn vai thức dậy đón ngày mới tràn đầy năng lượng cùng bạn nè! ☀️🐶✨", 2.5);
+                }
+                else
+                {
+                    ShowEmote("Dậy rồi nè! Chào bạn! ☀️", 1.8);
+                }
             }
             else
             {
@@ -815,11 +944,25 @@ namespace DesktopPet.ViewModels
                 // KIỂM TRA NHU CẦU NGỦ:
                 if (CompleteNeed(PetNeedTypes.Sleep, 15, out int expGain, 10))
                 {
-                    ShowEmote($"Buồn ngủ được ngủ ngon quá! (+{expGain} EXP, +10 Xu) 💤✨", 3.0);
+                    if (IsDog)
+                    {
+                        ShowEmote($"Gâu... Cuộn tròn đánh một giấc ngủ say sưa thích quá! (+{expGain} EXP, +10 Xu) 💤🐶✨", 3.0);
+                    }
+                    else
+                    {
+                        ShowEmote($"Buồn ngủ được ngủ ngon quá! (+{expGain} EXP, +10 Xu) 💤✨", 3.0);
+                    }
                 }
                 else
                 {
-                    ShowEmote("Ngủ khò khò... 💤", 2.0);
+                    if (IsDog)
+                    {
+                        ShowEmote("Khò khò... cún mơ thấy đĩa xúc xích to đùng... 💤🦴🐶", 2.5);
+                    }
+                    else
+                    {
+                        ShowEmote("Ngủ khò khò... 💤", 2.0);
+                    }
                 }
             }
             OnPropertyChanged(nameof(State));
@@ -923,7 +1066,14 @@ namespace DesktopPet.ViewModels
             {
                 AddCoins(bonusCoins);
             }
-            ShowEmote($"✨ LÊN CẤP {pet.Level}! Mimi vui vẻ hơn! {(bonusCoins > 0 ? $"+{bonusCoins} xu" : "")} ✨", 3.5);
+            if (IsDog)
+            {
+                ShowEmote($"✨ LÊN CẤP {pet.Level}! {pet.Name} đã mạnh mẽ và thông minh hơn rồi nè! Gâu gâu! {(bonusCoins > 0 ? $"+{bonusCoins} xu" : "")} 🐶🎉✨", 3.5);
+            }
+            else
+            {
+                ShowEmote($"✨ LÊN CẤP {pet.Level}! {pet.Name} vui vẻ hơn! {(bonusCoins > 0 ? $"+{bonusCoins} xu" : "")} ✨", 3.5);
+            }
             CheckAchievementProgress("reach_level_5", pet.Level);
             CheckAchievementProgress("reach_level_10", pet.Level);
             NotifyStatProperties();
@@ -987,6 +1137,27 @@ namespace DesktopPet.ViewModels
             AppearanceChanged?.Invoke();
         }
 
+        public void ReloadGameData()
+        {
+            _pet = _save.Pets.Find(p => p.Id == _save.ActivePetId) ?? _save.Pets.FirstOrDefault() ?? new Pet();
+            _species = DataManager.Instance.GetSpecies(_pet.SpeciesId);
+            _sickHealthTimer = 0.0;
+            _recoveryHealthTimer = 0.0;
+            if (_pet.Needs == null || _pet.Needs.Count == 0)
+            {
+                _pet.Needs = new Dictionary<string, PetNeedState>();
+                foreach (var needType in PetNeedTypes.All)
+                {
+                    _pet.Needs[needType] = new PetNeedState();
+                }
+            }
+            RecalculatePosition();
+            NotifyAllProperties();
+            TriggerInventoryChanged();
+            GameDataReset?.Invoke();
+            ShowEmote("Dữ liệu game đã được đặt lại về ban đầu! ✨", 3.0);
+        }
+
         public void PetViewModel_ApplyItem(Item item)
         {
             if (item == null) return;
@@ -995,7 +1166,14 @@ namespace DesktopPet.ViewModels
             {
                 if (!_pet.IsSick && _pet.State != PetState.Sick)
                 {
-                    ShowEmote("Mimi đang khỏe mạnh, không cần uống thuốc đâu! ✨", 2.5);
+                    if (IsDog)
+                    {
+                        ShowEmote($"{_pet.Name} đang khỏe re, chạy nhảy tưng bừng không cần uống thuốc đâu nhé! 🐶✨", 2.5);
+                    }
+                    else
+                    {
+                        ShowEmote($"{_pet.Name} đang khỏe mạnh, không cần uống thuốc đâu! ✨", 2.5);
+                    }
                     return;
                 }
 
@@ -1006,7 +1184,14 @@ namespace DesktopPet.ViewModels
                 _pet.State = PetState.Idle;
 
                 _statService.ApplyItemEffect(_pet, item);
-                ShowEmote("Cảm ơn Sen nhiều nha! Mimi đã khỏi ốm rồi nè, cảm thấy khỏe khoắn hẳn ra! ✨💖💊", 4.0);
+                if (IsDog)
+                {
+                    ShowEmote("Gâu gâu! Uống thuốc xong cún khỏi ốm hẳn rồi! Lại có sức bảo vệ và nô đùa cùng bạn! Cảm ơn bạn nhiều nha! 🐶💖💊✨", 4.0);
+                }
+                else
+                {
+                    ShowEmote($"Cảm ơn Sen nhiều nha! {_pet.Name} đã khỏi ốm rồi nè, cảm thấy khỏe khoắn hẳn ra! ✨💖💊", 4.0);
+                }
                 OnPropertyChanged(nameof(State));
                 RequestPlayAnimation?.Invoke("Idle");
                 SaveService.Instance.SaveGame(_save);
@@ -1022,7 +1207,7 @@ namespace DesktopPet.ViewModels
             {
                 if (!isFood)
                 {
-                    ShowEmote("Tớ đang bị ốm, chưa muốn làm gì.", 2.5);
+                    ShowSickWarning(2.5);
                     return;
                 }
             }
@@ -1068,17 +1253,38 @@ namespace DesktopPet.ViewModels
             if (isDrink && CompleteNeed(PetNeedTypes.Thirst, 15, out expGain, 10))
             {
                 needCompleted = true;
-                ShowEmote($"Đã khát rồi! {item.Icon} Cảm ơn bạn! (+{expGain} EXP, +10 Xu) 🥛✨", 3.0);
+                if (IsDog)
+                {
+                    ShowEmote($"Ực ực... Đã khát rồi nè! {item.Icon} Cún cảm ơn bạn nhiều lắm! (+{expGain} EXP, +10 Xu) 🥛🐶✨", 3.0);
+                }
+                else
+                {
+                    ShowEmote($"Đã khát rồi! {item.Icon} Cảm ơn bạn! (+{expGain} EXP, +10 Xu) 🥛✨", 3.0);
+                }
             }
             else if (isFood && CompleteNeed(PetNeedTypes.Hunger, 15, out expGain, 10))
             {
                 needCompleted = true;
-                ShowEmote($"Yum! {item.Icon} Đang đói được ăn no nê! (+{expGain} EXP, +10 Xu) ✨💖", 5.0);
+                if (IsDog)
+                {
+                    ShowEmote($"Ngoạm ngoạm! {item.Icon} Đồ ăn ngon tuyệt cú cún, no căng bụng rồi! (+{expGain} EXP, +10 Xu) 🍖🐶💖", 5.0);
+                }
+                else
+                {
+                    ShowEmote($"Yum! {item.Icon} Đang đói được ăn no nê! (+{expGain} EXP, +10 Xu) ✨💖", 5.0);
+                }
             }
             else if (isToy && CompleteNeed(PetNeedTypes.Play, 20, out expGain, 10))
             {
                 needCompleted = true;
-                ShowEmote($"Thích quá! {item.Icon} Chơi đúng lúc mê ghê! (+{expGain} EXP, +10 Xu) 🎾✨", 3.0);
+                if (IsDog)
+                {
+                    ShowEmote($"Gâu gâu! {item.Icon} Chơi đùa thỏa thích mê tơi! (+{expGain} EXP, +10 Xu) 🎾🐕💨", 3.0);
+                }
+                else
+                {
+                    ShowEmote($"Thích quá! {item.Icon} Chơi đúng lúc mê ghê! (+{expGain} EXP, +10 Xu) 🎾✨", 3.0);
+                }
             }
 
             if (!needCompleted)
@@ -1086,15 +1292,36 @@ namespace DesktopPet.ViewModels
                 // Dùng item khi pet không yêu cầu -> Không cộng EXP
                 if (isDrink)
                 {
-                    ShowEmote($"Uống ừng ực ngon quá! {item.Icon} ✨", 3.0);
+                    if (IsDog)
+                    {
+                        ShowEmote($"Ực ực... Sữa béo ngon quá đi! {item.Icon} 🐶🥛✨", 3.0);
+                    }
+                    else
+                    {
+                        ShowEmote($"Uống ừng ực ngon quá! {item.Icon} ✨", 3.0);
+                    }
                 }
                 else if (isFood)
                 {
-                    ShowEmote($"Yum! {item.Icon} Măm măm ngon miệng!", 5.0);
+                    if (IsDog)
+                    {
+                        ShowEmote($"Ngoạm ngoạm! {item.Icon} Cún ăn hết sạch luôn rồi nè! 🐶🍖", 5.0);
+                    }
+                    else
+                    {
+                        ShowEmote($"Yum! {item.Icon} Măm măm ngon miệng!", 5.0);
+                    }
                 }
                 else if (isToy)
                 {
-                    ShowEmote($"Vui ghê! {item.Icon}", 2.5);
+                    if (IsDog)
+                    {
+                        ShowEmote($"Gâu gâu! Vui quá đi mất! {item.Icon} 🐶🎾", 2.5);
+                    }
+                    else
+                    {
+                        ShowEmote($"Vui ghê! {item.Icon}", 2.5);
+                    }
                 }
                 else
                 {

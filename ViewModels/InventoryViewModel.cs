@@ -123,7 +123,14 @@ namespace DesktopPet.ViewModels
             // Kiểm tra dùng thuốc khi không ốm -> Không lãng phí thuốc (Rule 19)
             if (def.Category == "Medicine" && !_petVM.Pet.IsSick && _petVM.Pet.State != PetState.Sick)
             {
-                _petVM.ShowEmote("Mimi đang hoàn toàn khỏe mạnh, không cần uống thuốc đâu nhé! ✨", 2.5);
+                if (_petVM.IsDog)
+                {
+                    _petVM.ShowEmote($"{_petVM.Pet.Name} đang khỏe re, chạy nhảy tưng bừng không cần uống thuốc đâu nhé! 🐶✨", 2.5);
+                }
+                else
+                {
+                    _petVM.ShowEmote("Mimi đang hoàn toàn khỏe mạnh, không cần uống thuốc đâu nhé! ✨", 2.5);
+                }
                 return;
             }
 
@@ -133,7 +140,7 @@ namespace DesktopPet.ViewModels
                 bool isDrink = def.Id == "milk" || def.Name.Contains("Sữa", StringComparison.OrdinalIgnoreCase);
                 if (def.Category != "Food" || isDrink)
                 {
-                    _petVM.ShowEmote("Tớ đang bị ốm, chưa muốn làm gì.", 2.5);
+                    _petVM.ShowSickWarning(2.5);
                     return;
                 }
             }

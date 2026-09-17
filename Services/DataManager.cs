@@ -90,7 +90,8 @@ namespace DesktopPet.Services
 
         private List<PetSpecies> GetDefaultSpecies() => new()
         {
-            new() { Id = "cat", Name = "Cat", DisplayName = "Mèo Mimi 🐱", Description = "Bé mèo mini siêu đáng yêu, thích cá và thích được vuốt ve.", IsUnlocked = true, BaseColor = "#FFA726" }
+            new() { Id = "cat", Name = "Cat", DisplayName = "Mèo Mimi 🐱", Description = "Bé mèo mini siêu đáng yêu, thích cá và thích được vuốt ve.", IsUnlocked = true, BaseColor = "#FFA726" },
+            new() { Id = "dog", Name = "Dog", DisplayName = "Chó", Description = "Chú chó Shiba nâu trắng thông minh, hoạt bát, thích chạy nhảy, lăn lộn và chơi bóng cùng bạn.", IsUnlocked = true, Speed = 2.2, BaseColor = "#5A3E2E", SecondaryColor = "#FFFFFF" }
         };
 
         private List<Item> GetDefaultItems() => new()

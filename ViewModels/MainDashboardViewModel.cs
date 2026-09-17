@@ -306,5 +306,14 @@ namespace DesktopPet.ViewModels
                 Achievements.Add(ach);
             }
         }
+
+        public void RefreshDashboard()
+        {
+            LoadDailyRewards();
+            LoadQuests();
+            LoadAchievements();
+            OnPropertyChanged(nameof(CanClaimDailyReward));
+            OnPropertyChanged(nameof(DailyRewardStatusText));
+        }
     }
 }

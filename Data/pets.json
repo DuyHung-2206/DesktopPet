@@ -15,5 +15,22 @@
     "isUnlocked": true,
     "baseColor": "#FFA726",
     "secondaryColor": "#FFE082"
+  },
+  {
+    "id": "dog",
+    "name": "Dog",
+    "displayName": "Chó",
+    "description": "Chú chó Shiba nâu trắng thông minh, hoạt bát, thích chạy nhảy, lăn lộn và chơi bóng cùng bạn.",
+    "hungerRate": 1.0,
+    "happinessRate": 1.0,
+    "energyRate": 1.0,
+    "cleanlinessRate": 1.0,
+    "speed": 2.2,
+    "favoriteFood": "apple",
+    "favoriteToy": "ball",
+    "unlockPrice": 0,
+    "isUnlocked": true,
+    "baseColor": "#5A3E2E",
+    "secondaryColor": "#FFFFFF"
   }
 ]

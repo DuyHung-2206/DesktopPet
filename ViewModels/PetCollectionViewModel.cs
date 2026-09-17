@@ -24,7 +24,7 @@ namespace DesktopPet.ViewModels
             get => _customName;
             set => SetProperty(ref _customName, value);
         }
-        public int Level { get; set; } = 1;
+        public int Level { get; set; } = 0;
         public string ActionText => IsActive ? "Đang Nuôi 🐾" : (IsUnlocked ? "Chọn Thú Cưng" : $"Mở Khóa ({UnlockPrice}🪙)");
     }
 
@@ -107,7 +107,7 @@ namespace DesktopPet.ViewModels
                     IsUnlocked = isUnlocked,
                     IsActive = isActive,
                     CustomName = existingPet?.Name ?? sp.Name,
-                    Level = existingPet?.Level ?? 1
+                    Level = existingPet?.Level ?? 0
                 });
             }
 

@@ -100,12 +100,14 @@ namespace DesktopPet.Services
             // 3. XỬ LÝ THEO TRẠNG THÁI HIỆN TẠI
             _stateTimer -= deltaTime;
 
+            bool isDog = pet.SpeciesId?.Equals("dog", StringComparison.OrdinalIgnoreCase) == true;
+
             switch (pet.State)
             {
                 case PetState.Idle:
                     if (_stateTimer <= 0)
                     {
-                        DecideNextAction(pet, workArea, petWidth, petHeight);
+                        DecideNextAction(pet, workArea, petWidth, petHeight, species);
                     }
                     break;
 
@@ -118,9 +120,9 @@ namespace DesktopPet.Services
 
                     if (dist <= 5.0 || _stateTimer <= 0)
                     {
-                        // Đã đến điểm đích hoặc hết giờ đi -> Chuyển sang đứng yên (Idle)
+                        // Đã đến điểm đích hoặc hết giờ đi -> Chuyển sang đứng yên (Idle) với khoảng nghỉ tự nhiên
                         pet.State = PetState.Idle;
-                        _stateTimer = _rand.Next(30, 45);
+                        _stateTimer = isDog ? _rand.Next(3, 7) : _rand.Next(5, 10);
                     }
                     else
                     {
@@ -139,7 +141,7 @@ namespace DesktopPet.Services
                     if (_stateTimer <= 0)
                     {
                         pet.State = GetDefaultNextState(pet);
-                        _stateTimer = _rand.Next(25, 40);
+                        _stateTimer = isDog ? _rand.Next(3, 6) : _rand.Next(4, 9);
                     }
                     break;
 
@@ -148,7 +150,7 @@ namespace DesktopPet.Services
                     if (pet.Cleanliness >= 35 && _stateTimer <= 0)
                     {
                         pet.State = PetState.Idle;
-                        _stateTimer = _rand.Next(25, 40);
+                        _stateTimer = isDog ? _rand.Next(4, 8) : _rand.Next(6, 12);
                     }
                     break;
 
@@ -185,7 +187,7 @@ namespace DesktopPet.Services
                             nextState = GetDefaultNextState(pet);
                         }
                         pet.State = nextState;
-                        _stateTimer = _rand.Next(20, 35);
+                        _stateTimer = isDog ? _rand.Next(3, 7) : _rand.Next(5, 10);
                     }
                     break;
 
@@ -233,7 +235,7 @@ namespace DesktopPet.Services
                     {
                         pet.Y = _happyBaseY;
                         pet.State = PetState.Idle;
-                        _stateTimer = _rand.Next(25, 40);
+                        _stateTimer = isDog ? _rand.Next(3, 7) : _rand.Next(5, 10);
                     }
                     break;
 
@@ -249,7 +251,69 @@ namespace DesktopPet.Services
             (pet.X, pet.Y) = ViewportService.ClampPosition(pet.X, pet.Y, petWidth, petHeight, screenIndex);
         }
 
-        public void DecideNextAction(Pet pet, Rectangle workArea = default, double petWidth = 70.0, double petHeight = 70.0)
+        public (double targetX, double targetY) PickWanderTarget(Pet pet, Rectangle workArea = default, double petWidth = 70.0, double petHeight = 70.0, double minDistance = 140.0)
+        {
+            if (workArea.Width <= 0 || workArea.Height <= 0)
+            {
+                workArea = ViewportService.GetWorkingArea(0);
+            }
+
+            var minX = workArea.Left + ViewportService.SafeMargin;
+            var maxX = workArea.Right - petWidth - ViewportService.SafeMargin;
+            if (maxX < minX) maxX = minX;
+
+            var minY = workArea.Top + ViewportService.SafeMargin;
+            var maxY = workArea.Bottom - petHeight - ViewportService.SafeMargin;
+            if (maxY < minY) maxY = minY;
+
+            double bestX = _rand.Next((int)minX, (int)maxX + 1);
+            double bestY = _rand.Next((int)minY, (int)maxY + 1);
+
+            for (int attempt = 0; attempt < 12; attempt++)
+            {
+                double candX = _rand.Next((int)minX, (int)maxX + 1);
+                double candY = _rand.Next((int)minY, (int)maxY + 1);
+                double dist = Math.Sqrt(Math.Pow(candX - pet.X, 2) + Math.Pow(candY - pet.Y, 2));
+                if (dist >= minDistance)
+                {
+                    return (candX, candY);
+                }
+                bestX = candX;
+                bestY = candY;
+            }
+
+            return (bestX, bestY);
+        }
+
+        public void TriggerWalk(Pet pet, Rectangle workArea = default, double petWidth = 70.0, double petHeight = 70.0, double speedMultiplier = 2.2)
+        {
+            if (pet == null) return;
+            pet.State = PetState.Walk;
+            var (tx, ty) = PickWanderTarget(pet, workArea, petWidth, petHeight, minDistance: 140.0);
+            _targetX = tx;
+            _targetY = ty;
+
+            double dx = _targetX - pet.X;
+            double dy = _targetY - pet.Y;
+            double dist = Math.Sqrt(dx * dx + dy * dy);
+            double moveSpeed = speedMultiplier * 60.0;
+            if (moveSpeed <= 10.0) moveSpeed = 132.0;
+
+            _stateTimer = Math.Max(4.0, (dist / moveSpeed) + 1.5);
+        }
+
+        public void ResetAIState(Pet pet, PetSpecies? species = null)
+        {
+            if (pet == null) return;
+            IsFalling = false;
+            FoodTarget = null;
+            _stateTimer = 0.5; // Kích hoạt ngay hành động tiếp theo sau 0.5s để thú cưng bắt đầu tương tác
+            pet.State = PetState.Idle;
+            _targetX = pet.X;
+            _targetY = pet.Y;
+        }
+
+        public void DecideNextAction(Pet pet, Rectangle workArea = default, double petWidth = 70.0, double petHeight = 70.0, PetSpecies? species = null)
         {
             // Rule 7 & 17: Không ngắt quãng trạng thái One-Shot hoặc trạng thái ưu tiên cao
             if (IsOneShotOrHighPriority(pet.State)) return;
@@ -283,41 +347,60 @@ namespace DesktopPet.Services
                 return;
             }
 
-            // Ngẫu nhiên chọn hành động tiếp theo
+            bool isDog = pet.SpeciesId?.Equals("dog", StringComparison.OrdinalIgnoreCase) == true;
             var roll = _rand.Next(100);
 
-            if (roll < 45)
+            if (isDog)
             {
-                // Đi dạo tự do trên desktop (Walk - 2D Desktop Roaming)
-                pet.State = PetState.Walk;
-                var minX = workArea.Left + ViewportService.SafeMargin;
-                var maxX = workArea.Right - petWidth - ViewportService.SafeMargin;
-                if (maxX < minX) maxX = minX;
-                _targetX = _rand.Next((int)minX, (int)maxX + 1);
-
-                var minY = workArea.Top + ViewportService.SafeMargin;
-                var maxY = workArea.Bottom - petHeight - ViewportService.SafeMargin;
-                if (maxY < minY) maxY = minY;
-                _targetY = _rand.Next((int)minY, (int)maxY + 1);
-
-                _stateTimer = _rand.Next(4, 9);
-            }
-            else if (roll < 70)
-            {
-                // Ngồi nghỉ ngơi (Sit)
-                pet.State = PetState.Sit;
-                _stateTimer = _rand.Next(4, 10);
-            }
-            else if (roll < 85)
-            {
-                // Hào hứng nhảy nhót (Happy)
-                TriggerHappy(pet);
+                // Chó năng động, thích chạy nhảy và tự do di chuyển khám phá màn hình
+                if (roll < 60)
+                {
+                    // 60% xác suất đi dạo tự do trên desktop (Walk - 2D Desktop Roaming)
+                    TriggerWalk(pet, workArea, petWidth, petHeight, species?.Speed ?? 2.2);
+                }
+                else if (roll < 75)
+                {
+                    // 15% xác suất ngồi quan sát (Sit)
+                    pet.State = PetState.Sit;
+                    _stateTimer = _rand.Next(3, 7);
+                }
+                else if (roll < 90)
+                {
+                    // 15% xác suất nhảy mừng / sủa vui vẻ (Happy)
+                    TriggerHappy(pet);
+                }
+                else
+                {
+                    // 10% xác suất đứng nhìn (Idle ngắn)
+                    pet.State = PetState.Idle;
+                    _stateTimer = _rand.Next(3, 6);
+                }
             }
             else
             {
-                // Đứng quan sát nhìn người dùng (Idle)
-                pet.State = PetState.Idle;
-                _stateTimer = _rand.Next(30, 45);
+                // Mèo và các pet khác
+                if (roll < 45)
+                {
+                    // Đi dạo tự do trên desktop (Walk - 2D Desktop Roaming)
+                    TriggerWalk(pet, workArea, petWidth, petHeight, species?.Speed ?? 2.2);
+                }
+                else if (roll < 70)
+                {
+                    // Ngồi nghỉ ngơi (Sit)
+                    pet.State = PetState.Sit;
+                    _stateTimer = _rand.Next(4, 10);
+                }
+                else if (roll < 85)
+                {
+                    // Hào hứng nhảy nhót (Happy)
+                    TriggerHappy(pet);
+                }
+                else
+                {
+                    // Đứng quan sát nhìn người dùng (Idle)
+                    pet.State = PetState.Idle;
+                    _stateTimer = _rand.Next(5, 10);
+                }
             }
         }
 
@@ -340,6 +423,7 @@ namespace DesktopPet.Services
             if (pet == null) return;
             if (pet.State == finishedState)
             {
+                bool isDog = pet.SpeciesId?.Equals("dog", StringComparison.OrdinalIgnoreCase) == true;
                 var def = AnimationRegistry.GetDefinition(finishedState);
                 var nextState = def.CompletionState ?? PetState.Idle;
                 if (nextState == PetState.Idle)
@@ -347,7 +431,7 @@ namespace DesktopPet.Services
                     nextState = GetDefaultNextState(pet);
                 }
                 pet.State = nextState;
-                _stateTimer = _rand.Next(20, 35);
+                _stateTimer = isDog ? _rand.Next(3, 7) : _rand.Next(5, 10);
                 _targetX = pet.X;
                 _targetY = pet.Y;
             }
@@ -356,6 +440,13 @@ namespace DesktopPet.Services
         public void TriggerState(Pet pet, PetState state, double customDuration = -1)
         {
             if (pet == null) return;
+
+            if (state == PetState.Walk)
+            {
+                TriggerWalk(pet);
+                return;
+            }
+
             pet.State = state;
             _targetX = pet.X;
             _targetY = pet.Y;

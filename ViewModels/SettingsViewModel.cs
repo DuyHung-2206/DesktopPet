@@ -113,6 +113,9 @@ namespace DesktopPet.ViewModels
         }
 
         public ICommand SaveSettingsCommand { get; }
+        public ICommand ResetGameDataCommand { get; }
+
+        public Func<bool>? ConfirmResetCallback { get; set; }
 
         public SettingsViewModel(PetViewModel petVM)
         {
@@ -128,6 +131,38 @@ namespace DesktopPet.ViewModels
                 AudioService.Instance.PlayClick();
                 _petVM.ShowEmote("Đã lưu cài đặt! ⚙️", 1.5);
             });
+
+            ResetGameDataCommand = new RelayCommand(ExecuteResetGameData);
+        }
+
+        public void ExecuteResetGameData()
+        {
+            bool confirmed;
+            if (ConfirmResetCallback != null)
+            {
+                confirmed = ConfirmResetCallback();
+            }
+            else
+            {
+                var dialog = new Views.ResetConfirmationDialog();
+                if (System.Windows.Application.Current?.MainWindow != null && System.Windows.Application.Current.MainWindow.IsVisible)
+                {
+                    dialog.Owner = System.Windows.Application.Current.MainWindow;
+                }
+                confirmed = dialog.ShowDialog() == true && dialog.IsConfirmed;
+            }
+
+            if (!confirmed)
+            {
+                return;
+            }
+
+            var success = SaveService.Instance.ResetGameData(_save);
+            if (success)
+            {
+                AudioService.Instance.PlayClick();
+                _petVM.ReloadGameData();
+            }
         }
 
         private void LoadMonitors()

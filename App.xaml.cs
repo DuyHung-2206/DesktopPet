@@ -109,6 +109,15 @@ namespace DesktopPet
                 ShowWindow(_settingsWindow);
             };
 
+            // Đồng bộ toàn bộ cửa sổ khi xóa/reset dữ liệu game
+            _petVM.GameDataReset += () =>
+            {
+                shopVM.RefreshCoins();
+                invVM.RefreshInventory();
+                colVM.RefreshCollection();
+                dashVM.RefreshDashboard();
+            };
+
             // 8. Khởi tạo System Tray
             _trayService = new TrayService(
                 _petVM,

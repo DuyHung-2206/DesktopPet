@@ -126,7 +126,7 @@ namespace DesktopPet.Services
                 Id = Guid.NewGuid().ToString(),
                 Name = "Mimi",
                 SpeciesId = "cat",
-                Level = 1,
+                Level = 0,
                 Exp = 0,
                 Health = 100,
                 Hunger = 85,
@@ -145,7 +145,7 @@ namespace DesktopPet.Services
                 Coins = 1000,
                 ActivePetId = defaultPet.Id,
                 Pets = new List<Pet> { defaultPet },
-                UnlockedSpeciesIds = new List<string> { "cat" },
+                UnlockedSpeciesIds = new List<string> { "cat", "dog" },
                 Inventory = new List<InventoryItem>
                 {
                     new() { ItemId = "apple", Quantity = 3 },
@@ -158,6 +158,92 @@ namespace DesktopPet.Services
             };
         }
 
+        /// <summary>
+        /// Đặt lại toàn bộ dữ liệu tiến trình của người chơi về trạng thái ban đầu:
+        /// Coins = 1000, Level = 0, Exp = 0, Inventory khởi tạo mới, nhiệm vụ và điểm danh reset.
+        /// Bảo toàn toàn bộ cài đặt ứng dụng (SoundVolume, IsMuted, v.v.).
+        /// </summary>
+        public bool ResetGameData(GameSave currentSave)
+        {
+            if (currentSave == null) return false;
+
+            try
+            {
+                // 1. Bảo toàn cấu hình cài đặt người chơi
+                var preservedSettings = currentSave.Settings ?? new GameSettings();
+
+                // 2. Khởi tạo cấu trúc dữ liệu mới chuẩn
+                var defaultSave = CreateDefaultSave();
+                defaultSave.Coins = 1000;
+                if (defaultSave.Pets.Count > 0)
+                {
+                    defaultSave.Pets[0].Level = 0;
+                    defaultSave.Pets[0].Exp = 0;
+                }
+
+                // 3. Cập nhật in-place vào currentSave để bảo toàn tham chiếu bộ nhớ
+                currentSave.Version = defaultSave.Version;
+                currentSave.Coins = 1000;
+                currentSave.ActivePetId = defaultSave.ActivePetId;
+
+                currentSave.Pets.Clear();
+                foreach (var p in defaultSave.Pets)
+                {
+                    currentSave.Pets.Add(p);
+                }
+
+                currentSave.UnlockedSpeciesIds.Clear();
+                foreach (var sp in defaultSave.UnlockedSpeciesIds)
+                {
+                    currentSave.UnlockedSpeciesIds.Add(sp);
+                }
+
+                currentSave.Inventory.Clear();
+                foreach (var item in defaultSave.Inventory)
+                {
+                    currentSave.Inventory.Add(new InventoryItem
+                    {
+                        ItemId = item.ItemId,
+                        Quantity = item.Quantity
+                    });
+                }
+
+                currentSave.DailyRewardStreak = 1;
+                currentSave.LastDailyRewardUtc = null;
+
+                currentSave.QuestProgress?.Clear();
+                currentSave.ClaimedQuestIds?.Clear();
+                currentSave.AchievementProgress?.Clear();
+                currentSave.UnlockedAchievementIds?.Clear();
+
+                currentSave.TotalFeedCount = 0;
+                currentSave.TotalPlayCount = 0;
+                currentSave.TotalBathCount = 0;
+                currentSave.FailedRequestCount = 0;
+                currentSave.HasTriggered50PlaySick = false;
+
+                // 4. Giữ nguyên cấu hình cài đặt ứng dụng
+                currentSave.Settings = preservedSettings;
+
+                // 5. Lưu lại dữ liệu mới vào ổ đĩa ngay lập tức
+                var saved = SaveGame(currentSave);
+                LoggerService.Info("Đã reset toàn bộ dữ liệu game về mặc định (Coins: 1000, Level: 0, Exp: 0, Inventory khởi tạo).");
+                return saved;
+            }
+            catch (Exception ex)
+            {
+                LoggerService.Error("Lỗi khi thực hiện ResetGameData", ex);
+                return false;
+            }
+        }
+
+        public GameSave ResetGameData()
+        {
+            var save = LoadGame();
+            ResetGameData(save);
+            return save;
+        }
+
         private void EnsureValidSave(GameSave save)
         {
             save.Pets ??= new List<Pet>();
@@ -165,6 +251,10 @@ namespace DesktopPet.Services
             if (!save.UnlockedSpeciesIds.Contains("cat"))
             {
                 save.UnlockedSpeciesIds.Add("cat");
+            }
+            if (!save.UnlockedSpeciesIds.Contains("dog"))
+            {
+                save.UnlockedSpeciesIds.Add("dog");
             }
             save.Inventory ??= new List<InventoryItem>();
             save.AchievementProgress ??= new Dictionary<string, int>();

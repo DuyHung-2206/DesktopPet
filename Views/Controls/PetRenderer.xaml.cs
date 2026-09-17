@@ -411,7 +411,11 @@ namespace DesktopPet.Views.Controls
                     _currentFrameIndex = Math.Clamp(_currentFrameIndex, 0, _frameCount - 1);
                 }
 
-                _spriteTimer.Interval = TimeSpan.FromMilliseconds(intervalMs);
+                int cachedEffectiveIntervalMs = (state == PetState.Eat && _frameCount > 0)
+                    ? Math.Max(100, (int)(Services.AnimationRegistry.GetDefinition(state).TotalDurationSeconds * 1000 / _frameCount))
+                    : intervalMs;
+
+                _spriteTimer.Interval = TimeSpan.FromMilliseconds(cachedEffectiveIntervalMs);
                 RenderCurrentFrame();
                 if (_frameCount > 1 && !_spriteTimer.IsEnabled)
                 {
@@ -433,7 +437,6 @@ namespace DesktopPet.Views.Controls
                 _currentSpriteStrip = bi;
                 _currentLoadedFile = filePath;
 
-                // Mỗi frame có kích thước vuông theo chiều cao (chuẩn 64x64)
                 int cellDim = (int)bi.PixelHeight > 0 ? (int)bi.PixelHeight : 64;
                 _frameCount = Math.Max(1, (int)(bi.PixelWidth / cellDim));
                 if (restartAnimation)
@@ -445,7 +448,11 @@ namespace DesktopPet.Views.Controls
                     _currentFrameIndex = Math.Clamp(_currentFrameIndex, 0, _frameCount - 1);
                 }
 
-                _spriteTimer.Interval = TimeSpan.FromMilliseconds(intervalMs);
+                int effectiveIntervalMs = (state == PetState.Eat && _frameCount > 0)
+                    ? Math.Max(100, (int)(Services.AnimationRegistry.GetDefinition(state).TotalDurationSeconds * 1000 / _frameCount))
+                    : intervalMs;
+
+                _spriteTimer.Interval = TimeSpan.FromMilliseconds(effectiveIntervalMs);
                 RenderCurrentFrame();
 
                 if (_frameCount > 1)

@@ -18,9 +18,9 @@ namespace DesktopPet.Models
         public double Affection { get; set; } = 50.0;
 
         // Cấp độ và Kinh nghiệm
-        public int Level { get; set; } = 1;
+        public int Level { get; set; } = 0;
         public int Exp { get; set; } = 0;
-        public int MaxExp => Level * 100;
+        public int MaxExp => Math.Max(1, Level) * 100;
 
         // Tuổi và Ngày sinh
         public DateTime Birthday { get; set; } = DateTime.UtcNow;
